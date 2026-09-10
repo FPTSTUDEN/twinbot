@@ -1,0 +1,6 @@
+command,allowed-users-or-everyone
+ping,everyone
+greet,everyone
+join,everyone
+play,123456789012345678;987654321098765432
+leave,everyone

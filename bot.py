@@ -3,6 +3,9 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
+import access_control
+from access_control import check_permission, log_permissions
+
 # Load environment variables from .env file
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -17,6 +20,8 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
+    print(f"Loaded permissions from '{access_control.PERMISSIONS_FILE}':")
+    log_permissions()
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} command(s)")
@@ -24,9 +29,24 @@ async def on_ready():
         print(f"Failed to sync commands: {e}")
 
 
+# Slash Command Example: /ping
+@bot.tree.command(name="ping", description="Replies with Pong!")
+async def ping(interaction: discord.Interaction):
+    await interaction.response.send_message("Pong! 🏓")
+
+
+# Slash Command with an Argument: /greet
+@bot.tree.command(name="greet", description="Greets a user")
+async def greet(interaction: discord.Interaction, user: discord.Member):
+    await interaction.response.send_message(f"Hello, {user.mention}!")
+
+
 # Command: Join the user's current voice channel
 @bot.tree.command(name="join", description="Joins your voice channel")
 async def join(interaction: discord.Interaction):
+    if not await check_permission(interaction, "join"):
+        return
+
     if not interaction.user.voice or not interaction.user.voice.channel:
         await interaction.response.send_message(
             "You must be in a voice channel to use this command!",
@@ -40,9 +60,7 @@ async def join(interaction: discord.Interaction):
     else:
         await channel.connect()
 
-    await interaction.response.send_message(
-        f"Joined **{channel.name}**! 🔊"
-    )
+    await interaction.response.send_message(f"Joined **{channel.name}**! 🔊")
 
 
 # Command: Play a local audio file
@@ -50,35 +68,32 @@ async def join(interaction: discord.Interaction):
     name="play", description="Plays a local audio file in your voice channel"
 )
 async def play(interaction: discord.Interaction, file_path: str):
-    # Ensure user is in a voice channel
+    if not await check_permission(interaction, "play"):
+        return
+
     if not interaction.user.voice or not interaction.user.voice.channel:
         await interaction.response.send_message(
             "You must be in a voice channel first!", ephemeral=True
         )
         return
 
-    # Check if the file exists locally
     if not os.path.isfile(file_path):
         await interaction.response.send_message(
             f"File not found: `{file_path}`", ephemeral=True
         )
         return
 
-    # Defer response in case audio loading takes a second
     await interaction.response.defer()
 
-    # Connect to voice if not already connected
     voice_client = interaction.guild.voice_client
     if voice_client is None:
         voice_client = await interaction.user.voice.channel.connect()
     elif voice_client.channel != interaction.user.voice.channel:
         await voice_client.move_to(interaction.user.voice.channel)
 
-    # Stop current audio if playing
     if voice_client.is_playing():
         voice_client.stop()
 
-    # Play the local file using FFmpeg
     audio_source = discord.FFmpegPCMAudio(file_path)
     voice_client.play(
         audio_source,
@@ -93,6 +108,9 @@ async def play(interaction: discord.Interaction, file_path: str):
 # Command: Leave the voice channel
 @bot.tree.command(name="leave", description="Disconnects from the voice channel")
 async def leave(interaction: discord.Interaction):
+    if not await check_permission(interaction, "leave"):
+        return
+
     voice_client = interaction.guild.voice_client
     if voice_client and voice_client.is_connected():
         await voice_client.disconnect()
