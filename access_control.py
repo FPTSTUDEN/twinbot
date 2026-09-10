@@ -20,9 +20,21 @@ import discord
 
 
 # Path to the CSV file containing per-command permissions.
-# Can be overridden before importing by setting the PERMISSIONS_FILE env var,
-# or reassigned at runtime by the caller.
+# Can be overridden by setting the PERMISSIONS_FILE env var.
 PERMISSIONS_FILE = os.getenv("PERMISSIONS_FILE", "users_list.csv")
+
+
+def mask_user_id(user_id: str) -> str:
+    """Return a censored form of a Discord user ID.
+
+    Discord snowflake IDs are 17-20 digits. We show the last 4 digits
+    and replace the rest with asterisks, e.g.:
+        "123456789012345678" -> "**************5678"
+    """
+    user_id = str(user_id).strip()
+    if len(user_id) <= 4:
+        return "*" * len(user_id)
+    return "*" * (len(user_id) - 4) + user_id[-4:]
 
 
 def load_permissions(path: str | None = None) -> dict:
@@ -106,14 +118,17 @@ async def check_permission(interaction: discord.Interaction, command_name: str) 
 
 
 def log_permissions() -> None:
-    """Print the currently loaded permissions (used at startup)."""
+    """Print the currently loaded permissions (used at startup).
+
+    User IDs are censored so they don't end up in full in the console log.
+    """
     perms = load_permissions()
     if not perms:
         print("  (no permissions loaded)")
         return
     for cmd, entry in perms.items():
-        shown = "everyone" if entry == "everyone" else sorted(entry)
-        # Censor user IDs, leaving only the last 3 digits visible for privacy
-        if isinstance(shown, list):
-            shown = [f"***{uid[-3:]}" for uid in shown]
+        if entry == "everyone":
+            shown = "everyone"
+        else:
+            shown = sorted(mask_user_id(uid) for uid in entry)
         print(f"  - /{cmd}: {shown}")
