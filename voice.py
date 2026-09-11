@@ -32,7 +32,13 @@ def _resolve_local_path(name_or_path: str) -> str:
 
 
 async def _download_youtube_mp3(query: str, output_path: str) -> bool:
-    """Download the best match for `query` from YouTube as an MP3."""
+    """Download the best match for `query` from YouTube as an MP3.
+
+    Equivalent to the CLI:
+        yt-dlp -x --audio-format mp3 --audio-quality 0 \\
+               "ytsearch1:<query>" \\
+               -o "<output_path_without_ext>.%(ext)s"
+    """
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
     def _run() -> bool:
@@ -43,31 +49,31 @@ async def _download_youtube_mp3(query: str, output_path: str) -> bool:
             return False
 
         ydl_opts = {
-            "format": "bestaudio/best",
-            "outtmpl": output_path.rsplit(".", 1)[0] + ".%(ext)s",
-            "postprocessors": [
+            "format": "bestaudio/best",                       # -f bestaudio/best
+            "outtmpl": output_path.rsplit(".", 1)[0] + ".%(ext)s",   # -o ...
+            "postprocessors": [                               # -x --audio-format mp3
                 {
                     "key": "FFmpegExtractAudio",
                     "preferredcodec": "mp3",
-                    "preferredquality": "192",
+                    "preferredquality": "0",                  # --audio-quality 0
                 }
             ],
             "quiet": True,
             "no_warnings": True,
             "noplaylist": True,
-            "default_search": "ytsearch1",
         }
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([query])
+                # "ytsearch1:<query>" = search and take the first hit.
+                # Equivalent to passing the same string on the CLI.
+                ydl.download([f"ytsearch1:{query}"])
             return os.path.isfile(output_path)
         except Exception as e:
             print(f"[ERROR] yt-dlp download failed for '{query}': {e}")
             return False
 
     return await asyncio.to_thread(_run)
-
 
 async def _ensure_voice_client(interaction: discord.Interaction) -> discord.VoiceClient:
     """Connect to (or move to) the user's voice channel and return the client."""
