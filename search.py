@@ -54,7 +54,8 @@ async def _http_get_json(url: str, *, params: dict | None = None) -> dict:
     async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
         async with session.get(url, params=params, headers=headers) as resp:
             resp.raise_for_status()
-            return await resp.json()
+            # Ignore Content-Type header mismatches
+            return await resp.json(content_type=None)
 
 
 # --- DuckDuckGo text search ----------------------------------------------
@@ -157,7 +158,8 @@ async def _ddg_image_results(query: str, limit: int = MAX_IMAGES) -> list[dict]:
             "https://duckduckgo.com/i.js", params=params, headers=headers
         ) as resp:
             resp.raise_for_status()
-            data = await resp.json()
+            # Ignore Content-Type header mismatches
+            data = await resp.json(content_type=None)
 
     results = []
     for item in data.get("results", [])[:limit]:
