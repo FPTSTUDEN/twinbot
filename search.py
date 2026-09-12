@@ -2,7 +2,7 @@
 
 Provides a /search command with two modes:
   - text  : searches DuckDuckGo (instant answer + top results)
-  - image : searches for images and returns an embed / attachments
+  - image : searches for images and posts each result as its own message
 
 Supports an `immediate` flag that skips any confirmation and sends
 results straight to the channel.
@@ -10,7 +10,7 @@ results straight to the channel.
 Uses only public endpoints / redirects so no API key is required:
   - DuckDuckGo Instant Answer API  (text instant answers)
   - DuckDuckGo HTML endpoint       (text results fallback)
-  - DuckDuckGo image search        (images)
+  - DuckDuckGo image search        (images, via `ddgs`)
 """
 
 import os
@@ -85,9 +85,6 @@ async def _ddg_html_results(query: str, limit: int = MAX_RESULTS) -> list[dict]:
     )
 
     results: list[dict] = []
-    # Each result block looks roughly like:
-    #   <a rel="nofollow" class="result__a" href="...">Title</a>
-    #   <a class="result__snippet" ...>Snippet</a>
     link_re = re.compile(
         r'<a[^>]*class="result__a"[^>]*href="(?P<href>[^"]+)"[^>]*>(?P<title>.*?)</a>',
         re.DOTALL,
@@ -101,7 +98,6 @@ async def _ddg_html_results(query: str, limit: int = MAX_RESULTS) -> list[dict]:
     snippets = [m.group("snippet") for m in snippet_re.finditer(raw)]
 
     for i, (href, title) in enumerate(links[:limit]):
-        # DDG wraps URLs in a redirect: /l/?uddg=<encoded>
         parsed = urllib.parse.urlparse(href)
         qs = urllib.parse.parse_qs(parsed.query)
         real_url = qs.get("uddg", [href])[0]
@@ -146,6 +142,7 @@ async def _ddg_image_results(query: str, limit: int = MAX_IMAGES) -> list[dict]:
         })
     return results
 
+
 # --- Embed builders -------------------------------------------------------
 
 def _text_results_embed(query: str, instant: dict, results: list[dict]) -> discord.Embed:
@@ -154,7 +151,6 @@ def _text_results_embed(query: str, instant: dict, results: list[dict]) -> disco
         color=discord.Color.blurple(),
     )
 
-    # Instant answer (if any)
     abstract = instant.get("AbstractText") or instant.get("Answer")
     if abstract:
         source = instant.get("AbstractSource") or instant.get("AnswerType") or ""
@@ -187,21 +183,22 @@ def _text_results_embed(query: str, instant: dict, results: list[dict]) -> disco
     return embed
 
 
-def _image_embed(query: str, results: list[dict]) -> discord.Embed:
+def _image_result_embed(index: int, total: int, query: str, result: dict) -> discord.Embed:
+    """Build an embed for a single image result."""
+    title = (result.get("title") or "image").strip()
     embed = discord.Embed(
-        title=f"🖼️ Image results for: {query}",
+        title=title[:256],
+        url=result.get("url") or result.get("image") or None,
         color=discord.Color.green(),
     )
-    for i, r in enumerate(results, start=1):
-        embed.add_field(
-            name=f"Result {i}",
-            value=f"[{r['title'][:80] or 'image'}]({r['url'] or r['image']})",
-            inline=False,
-        )
-    # Set the first image as the embed's main image for a nice preview.
-    if results and results[0]["image"]:
-        embed.set_image(url=results[0]["image"])
-    embed.set_footer(text=f"{len(results)} image(s)")
+    embed.set_footer(text=f"Result {index}/{total} — query: {query}")
+    if result.get("image"):
+        embed.set_image(url=result["image"])
+    elif result.get("thumbnail"):
+        # Fall back to the thumbnail if the full-size image URL is missing.
+        embed.set_image(url=result["thumbnail"])
+    if result.get("url"):
+        embed.add_field(name="Source", value=result["url"][:1024], inline=False)
     return embed
 
 
@@ -235,37 +232,13 @@ async def search(
         )
         return
 
-    # We always defer because search may take a moment.
     await interaction.response.defer()
 
     try:
         if mode == "text":
-            instant, results = await asyncio.gather(
-                _ddg_instant_answer(query),
-                _ddg_html_results(query),
-            )
-            embed = _text_results_embed(query, instant, results)
-
-            if immediate:
-                await interaction.followup.send(embed=embed)
-            else:
-                view = _PreviewView(embed=embed, author_id=interaction.user.id)
-                await interaction.followup.send(embed=embed, view=view)
-
-        else:  # image
-            results = await _ddg_image_results(query)
-            if not results:
-                await interaction.followup.send("No image results found.")
-                return
-
-            embed = _image_embed(query, results)
-
-            if immediate:
-                # Send the embed plus the first image as a file preview.
-                await interaction.followup.send(embed=embed)
-            else:
-                view = _PreviewView(embed=embed, author_id=interaction.user.id)
-                await interaction.followup.send(embed=embed, view=view)
+            await _handle_text(interaction, query, immediate)
+        else:
+            await _handle_image(interaction, query, immediate)
 
     except aiohttp.ClientError as e:
         await interaction.followup.send(f"⚠️ Search failed: `{e}`")
@@ -274,10 +247,48 @@ async def search(
         await interaction.followup.send("⚠️ Search failed unexpectedly.")
 
 
-class _PreviewView(discord.ui.View):
-    """Optional preview view with a 'Send to channel' button.
+async def _handle_text(interaction: discord.Interaction, query: str, immediate: bool) -> None:
+    instant, results = await asyncio.gather(
+        _ddg_instant_answer(query),
+        _ddg_html_results(query),
+    )
+    embed = _text_results_embed(query, instant, results)
 
-    Only shown when `immediate=False`, letting the caller preview the
+    if immediate:
+        await interaction.followup.send(embed=embed)
+    else:
+        view = _PreviewView(embed=embed, author_id=interaction.user.id)
+        await interaction.followup.send(embed=embed, view=view)
+
+
+async def _handle_image(interaction: discord.Interaction, query: str, immediate: bool) -> None:
+    results = await _ddg_image_results(query)
+    if not results:
+        await interaction.followup.send("No image results found.")
+        return
+
+    total = len(results)
+    embeds = [
+        _image_result_embed(i, total, query, r)
+        for i, r in enumerate(results, start=1)
+    ]
+
+    if immediate:
+        # One message per image result.
+        for embed in embeds:
+            await interaction.followup.send(embed=embed)
+        return
+
+    # Preview mode: send one message per image, each with its own buttons.
+    for embed in embeds:
+        view = _PreviewView(embed=embed, author_id=interaction.user.id)
+        await interaction.followup.send(embed=embed, view=view)
+
+
+class _PreviewView(discord.ui.View):
+    """Preview view with 'Send to channel' / 'Dismiss' buttons.
+
+    Only shown when `immediate=False`, letting the caller preview each
     result before it's posted publicly.
     """
 
@@ -301,13 +312,11 @@ class _PreviewView(discord.ui.View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         if self.sent:
-            await interaction.response.send_message(
-                "Already sent.", ephemeral=True
-            )
+            await interaction.response.send_message("Already sent.", ephemeral=True)
             return
         self.sent = True
 
-        # Post the embed publicly to the same channel.
+        # Post the embed publicly to the same channel, replacing the preview.
         await interaction.channel.send(embed=self.embed)
 
         button.disabled = True
