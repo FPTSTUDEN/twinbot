@@ -34,7 +34,7 @@ USER_AGENT = (
 )
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=15)
 MAX_RESULTS = 5
-MAX_IMAGES = 4
+MAX_IMAGES = 2
 
 
 # --- HTTP helpers ---------------------------------------------------------
@@ -210,18 +210,6 @@ async def search(
     mode: str = "text",
     immediate: bool = False,
 ):
-    """Search the web (text) or for images, and optionally send right away.
-
-    Parameters
-    ----------
-    query : str
-        What to search for.
-    mode : str
-        "text" (default) or "image".
-    immediate : bool
-        If True, skip the "preview" embed with buttons and send results
-        directly to the channel.
-    """
     if not await check_permission(interaction, "search"):
         return
 
@@ -232,7 +220,9 @@ async def search(
         )
         return
 
-    await interaction.response.defer()
+    # Ephemeral defer → everything derived from this interaction stays private
+    # unless we explicitly post to the channel.
+    await interaction.response.defer(ephemeral=True)
 
     try:
         if mode == "text":
@@ -241,11 +231,10 @@ async def search(
             await _handle_image(interaction, query, immediate)
 
     except aiohttp.ClientError as e:
-        await interaction.followup.send(f"⚠️ Search failed: `{e}`")
+        await interaction.followup.send(f"⚠️ Search failed: `{e}`", ephemeral=True)
     except Exception as e:
         print(f"[ERROR] /search failed: {e}")
-        await interaction.followup.send("⚠️ Search failed unexpectedly.")
-
+        await interaction.followup.send("⚠️ Search failed unexpectedly.", ephemeral=True)
 
 async def _handle_text(interaction: discord.Interaction, query: str, immediate: bool) -> None:
     instant, results = await asyncio.gather(
@@ -255,16 +244,18 @@ async def _handle_text(interaction: discord.Interaction, query: str, immediate: 
     embed = _text_results_embed(query, instant, results)
 
     if immediate:
-        await interaction.followup.send(embed=embed)
+        # Publish publicly via the channel, not the (ephemeral) followup.
+        await interaction.channel.send(embed=embed)
     else:
+        # Preview privately for the invoker.
         view = _PreviewView(embed=embed, author_id=interaction.user.id)
-        await interaction.followup.send(embed=embed, view=view)
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
 
 async def _handle_image(interaction: discord.Interaction, query: str, immediate: bool) -> None:
     results = await _ddg_image_results(query)
     if not results:
-        await interaction.followup.send("No image results found.")
+        await interaction.followup.send("No image results found.", ephemeral=True)
         return
 
     total = len(results)
@@ -274,23 +265,19 @@ async def _handle_image(interaction: discord.Interaction, query: str, immediate:
     ]
 
     if immediate:
-        # One message per image result.
+        # One public message per image result.
         for embed in embeds:
-            await interaction.followup.send(embed=embed)
+            await interaction.channel.send(embed=embed)
         return
 
-    # Preview mode: send one message per image, each with its own buttons.
+    # Preview mode: one ephemeral message per image, each with its own buttons.
     for embed in embeds:
         view = _PreviewView(embed=embed, author_id=interaction.user.id)
-        await interaction.followup.send(embed=embed, view=view)
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
 
 class _PreviewView(discord.ui.View):
-    """Preview view with 'Send to channel' / 'Dismiss' buttons.
-
-    Only shown when `immediate=False`, letting the caller preview each
-    result before it's posted publicly.
-    """
+    """Ephemeral preview view with 'Send to channel' / 'Dismiss' buttons."""
 
     def __init__(self, embed: discord.Embed, author_id: int, timeout: float = 120.0):
         super().__init__(timeout=timeout)
@@ -316,7 +303,7 @@ class _PreviewView(discord.ui.View):
             return
         self.sent = True
 
-        # Post the embed publicly to the same channel, replacing the preview.
+        # Publish publicly — this is the only public side-effect.
         await interaction.channel.send(embed=self.embed)
 
         button.disabled = True
@@ -332,7 +319,6 @@ class _PreviewView(discord.ui.View):
         await interaction.response.edit_message(
             content="Dismissed.", embed=None, view=self
         )
-
 
 def setup(bot: commands.Bot) -> None:
     """Register the /search command on the given bot instance."""
