@@ -1,0 +1,1 @@
+# Empty file — makes `tests` a package so `python -m tests.test_search` works.
