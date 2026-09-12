@@ -125,54 +125,26 @@ def _strip_tags(text: str) -> str:
 
 # --- DuckDuckGo image search ---------------------------------------------
 
+from ddgs import DDGS
+
 async def _ddg_image_results(query: str, limit: int = MAX_IMAGES) -> list[dict]:
-    """Fetch image results from DuckDuckGo's image JSON endpoint.
+    # Run synchronous DDGS search inside an executor to avoid blocking the asyncio loop
+    def fetch_images():
+        with DDGS() as ddgs:
+            return list(ddgs.images(query, max_results=limit))
 
-    Returns a list of {"title", "image", "thumbnail", "url"} dicts.
-    """
-    # DDG requires a vqd token from the HTML page first.
-    html_body = await _http_get(
-        "https://duckduckgo.com/",
-        params={"q": query},
-    )
-    m = re.search(r'vqd="([^"]+)"', html_body) or re.search(r"vqd=([\d-]+)", html_body)
-    if not m:
-        return []
-    vqd = m.group(1)
-
-    headers = {
-        "User-Agent": USER_AGENT,
-        "Referer": "https://duckduckgo.com/",
-        "Accept": "application/json",
-    }
-    params = {
-        "l": "us-en",
-        "o": "json",
-        "q": query,
-        "vqd": vqd,
-        "f": ",,,",
-        "p": "1",
-    }
-    async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
-        async with session.get(
-            "https://duckduckgo.com/i.js", params=params, headers=headers
-        ) as resp:
-            resp.raise_for_status()
-            # Ignore Content-Type header mismatches
-            data = await resp.json(content_type=None)
+    loop = asyncio.get_running_loop()
+    results_raw = await loop.run_in_executor(None, fetch_images)
 
     results = []
-    for item in data.get("results", [])[:limit]:
-        results.append(
-            {
-                "title": item.get("title", ""),
-                "image": item.get("image", ""),
-                "thumbnail": item.get("thumbnail", ""),
-                "url": item.get("url", ""),
-            }
-        )
+    for item in results_raw:
+        results.append({
+            "title": item.get("title", ""),
+            "image": item.get("image", ""),
+            "thumbnail": item.get("thumbnail", ""),
+            "url": item.get("url", ""),
+        })
     return results
-
 
 # --- Embed builders -------------------------------------------------------
 
