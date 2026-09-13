@@ -1,0 +1,4 @@
+# Keep only markdown files in the downloads directory. All other files (like images) will not be tracked by git.
+*
+!*.md
+!.gitignore
