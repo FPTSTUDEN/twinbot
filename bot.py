@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import access_control
 import voice
 import search
+import files
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -42,6 +43,8 @@ async def greet(interaction: discord.Interaction, user: discord.Member):
 voice.setup(bot)
 # Register search commands from the search module
 search.setup(bot)
+# Register file commands from the files module
+files.setup(bot)
 
 
 if __name__ == "__main__":
