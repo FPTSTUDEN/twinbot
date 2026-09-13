@@ -1,0 +1,6 @@
+name = "discord-interactions-fallback"
+main = "worker.ts"
+compatibility_date = "2024-11-01"
+
+# Add the public key as a secret:
+#   wrangler secret put DISCORD_PUBLIC_KEY
