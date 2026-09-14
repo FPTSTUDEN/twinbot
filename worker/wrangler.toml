@@ -1,6 +1,7 @@
-name = "discord-interactions-fallback"
+name = "discord-interactions-router"
 main = "worker.ts"
 compatibility_date = "2024-11-01"
 
-# Add the public key as a secret:
-#   wrangler secret put DISCORD_PUBLIC_KEY
+[[queues.producers]]
+binding = "INTERACTION_QUEUE"
+queue = "discord-interactions"

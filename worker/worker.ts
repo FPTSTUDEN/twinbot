@@ -1,30 +1,30 @@
 /**
- * Cloudflare Worker — Discord Interactions fallback endpoint.
+ * Cloudflare Worker — Discord Interactions entry point.
  *
- * This Worker only runs when the VPS bot is NOT connected to the Gateway.
- * Its only job is to return a friendly message so users don't see
- * "This interaction failed."
+ * Handles stateless commands inline. Defers + enqueues stateful commands
+ * for the VPS to pull from the queue.
  *
- * Requires the following environment variables / secrets:
- *   DISCORD_PUBLIC_KEY  — your application's public key (hex)
+ * Required secrets:
+ *   DISCORD_PUBLIC_KEY   — app public key (hex)
+ *
+ * Required binding:
+ *   INTERACTION_QUEUE    — Cloudflare Queue producer
  */
 
 export interface Env {
   DISCORD_PUBLIC_KEY: string;
+  INTERACTION_QUEUE: Queue;
 }
 
-// Discord interaction types
 const PING = 1;
 const APPLICATION_COMMAND = 2;
-
-// Discord interaction callback types
 const PONG = 1;
 const CHANNEL_MESSAGE_WITH_SOURCE = 4;
+const DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE = 5;
 
-/**
- * Verify the Ed25519 signature Discord sends with every interaction.
- * https://discord.com/developers/docs/interactions/overview#setting-up-an-endpoint-validating-security-request-headers
- */
+// Commands handled entirely inside the Worker.
+const STATELESS_COMMANDS = new Set(["ping", "greet"]);
+
 async function verifySignature(
   request: Request,
   body: string,
@@ -42,13 +42,14 @@ async function verifySignature(
       false,
       ["verify"]
     );
-
     const message = new TextEncoder().encode(timestamp + body);
-    const sig = hexToBytes(signature);
-
-    return await crypto.subtle.verify("Ed25519", key, sig, message);
-  } catch (e) {
-    console.error("Signature verification failed:", e);
+    return await crypto.subtle.verify(
+      "Ed25519",
+      key,
+      hexToBytes(signature),
+      message
+    );
+  } catch {
     return false;
   }
 }
@@ -68,6 +69,30 @@ function jsonResponse(data: unknown, status = 200): Response {
   });
 }
 
+function handleStateless(commandName: string, interaction: any) {
+  switch (commandName) {
+    case "ping":
+      return {
+        type: CHANNEL_MESSAGE_WITH_SOURCE,
+        data: { content: "Pong! 🏓" },
+      };
+    case "greet": {
+      const target = interaction.data?.options?.find(
+        (o: any) => o.name === "user"
+      )?.value;
+      return {
+        type: CHANNEL_MESSAGE_WITH_SOURCE,
+        data: { content: `Hello, <@${target}>!` },
+      };
+    }
+    default:
+      return {
+        type: CHANNEL_MESSAGE_WITH_SOURCE,
+        data: { content: "Unknown command.", flags: 64 },
+      };
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method !== "POST") {
@@ -75,46 +100,35 @@ export default {
     }
 
     const body = await request.text();
-
-    const valid = await verifySignature(request, body, env.DISCORD_PUBLIC_KEY);
-    if (!valid) {
+    if (!(await verifySignature(request, body, env.DISCORD_PUBLIC_KEY))) {
       return new Response("Invalid request signature", { status: 401 });
     }
 
-    let interaction: any;
-    try {
-      interaction = JSON.parse(body);
-    } catch {
-      return new Response("Invalid JSON", { status: 400 });
-    }
+    const interaction = JSON.parse(body);
 
-    // Discord sends a PING (type 1) to verify the endpoint URL.
     if (interaction.type === PING) {
       return jsonResponse({ type: PONG });
     }
 
-    // All other interactions arrive here only when the VPS bot is offline.
-    if (interaction.type === APPLICATION_COMMAND) {
-      const commandName = interaction.data?.name ?? "unknown";
-
+    if (interaction.type !== APPLICATION_COMMAND) {
       return jsonResponse({
         type: CHANNEL_MESSAGE_WITH_SOURCE,
-        data: {
-          content:
-            `⚠️ The bot is currently offline and cannot handle \`/${commandName}\`.\n` +
-            `Please try again in a moment.`,
-          flags: 64, // EPHEMERAL — only the invoker sees it
-        },
+        data: { content: "Unsupported interaction type.", flags: 64 },
       });
     }
 
-    // Unknown interaction type — just ACK so Discord doesn't retry forever.
-    return jsonResponse({
-      type: CHANNEL_MESSAGE_WITH_SOURCE,
-      data: {
-        content: "⚠️ Unsupported interaction type.",
-        flags: 64,
-      },
+    const commandName = interaction.data?.name ?? "";
+
+    if (STATELESS_COMMANDS.has(commandName)) {
+      return jsonResponse(handleStateless(commandName, interaction));
+    }
+
+    // Stateful: enqueue BEFORE responding.
+    await env.INTERACTION_QUEUE.send({
+      interaction,
+      receivedAt: Date.now(),
     });
+
+    return jsonResponse({ type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE });
   },
 };
