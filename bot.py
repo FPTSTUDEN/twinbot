@@ -3,6 +3,7 @@ import asyncio
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+import signal
 
 import access_control
 import voice
@@ -85,14 +86,57 @@ async def set_status(
 
 
 async def main():
-    await asyncio.gather(
-        queue_poller.pull_loop(),
-        status_reporter.status_loop(),
-        bot.start(TOKEN),
-    )
+    tasks = [
+        asyncio.create_task(queue_poller.pull_loop(), name="poller"),
+        asyncio.create_task(status_reporter.status_loop(), name="status"),
+        asyncio.create_task(bot.start(TOKEN), name="bot"),
+    ]
+
+    stop = asyncio.Event()
+    loop = asyncio.get_running_loop()
+
+    def _request_shutdown(*_):
+        stop.set()
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            loop.add_signal_handler(sig, _request_shutdown)
+        except NotImplementedError:
+            # Windows fallback
+            signal.signal(sig, _request_shutdown)
+
+    try:
+        # Wait until either a task dies or Ctrl+C is pressed.
+        done, pending = await asyncio.wait(
+            tasks,
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        # If we get here, a task exited on its own — likely an error.
+        for t in done:
+            exc = t.exception()
+            if exc is not None:
+                print(f"[main] task {t.get_name()} crashed: {exc!r}")
+    except asyncio.CancelledError:
+        pass
+    finally:
+        # Cancel any remaining tasks and let them unwind.
+        for t in tasks:
+            if not t.done():
+                t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Close the Discord client cleanly.
+        if not bot.is_closed():
+            await bot.close()
+
+        print("[main] shutdown complete")
 
 
 if __name__ == "__main__":
     if not TOKEN:
         raise ValueError("DISCORD_TOKEN environment variable not set in .env")
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        # asyncio.run re-raises KeyboardInterrupt after cancelling main().
+        print("[main] interrupted")
