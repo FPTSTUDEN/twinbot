@@ -10,6 +10,7 @@ import search
 import files
 import interaction_shim
 import queue_poller
+import status_reporter
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -61,10 +62,32 @@ async def greet(interaction: discord.Interaction, user: discord.Member):
     await interaction.response.send_message(f"Hello, {user.mention}!")
 
 
+@bot.tree.command(
+    name="set-status",
+    description="Manually set the bot's status flag (handled by the edge Worker)",
+    # default_member_permissions=discord.Permissions(manage_guild=True),
+)
+@discord.app_commands.describe(status="online, offline, or auto")
+@discord.app_commands.choices(status=[
+    discord.app_commands.Choice(name="online", value="online"),
+    discord.app_commands.Choice(name="offline", value="offline"),
+    discord.app_commands.Choice(name="auto", value="auto"),
+])
+async def set_status(
+    interaction: discord.Interaction,
+    status: discord.app_commands.Choice[str],
+):
+    # Never actually runs — the Worker intercepts this command before it
+    # reaches the Gateway. Exists only so Discord registers the command.
+    await interaction.response.send_message(
+        "This command is handled by the edge Worker.", ephemeral=True
+    )
+
+
 async def main():
-    # Run the queue poller and the bot together.
     await asyncio.gather(
         queue_poller.pull_loop(),
+        status_reporter.status_loop(),
         bot.start(TOKEN),
     )
 

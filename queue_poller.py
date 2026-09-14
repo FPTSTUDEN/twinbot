@@ -1,9 +1,4 @@
-"""Polls Cloudflare Queues for forwarded Discord interactions.
-
-Authentication uses a Cloudflare API token with Queue: Read and Queue: Edit
-permissions. The VPS initiates all requests, so no inbound HTTP server is
-needed.
-"""
+"""Polls Cloudflare Queues for forwarded Discord interactions."""
 
 from __future__ import annotations
 
@@ -18,11 +13,11 @@ import aiohttp
 
 from interaction_shim import InteractionShim
 
-
 dotenv.load_dotenv()
-CF_ACCOUNT_ID = os.environ["CF_ACCOUNT_ID"]
-CF_QUEUE_ID = os.environ["CF_QUEUE_ID"]
-CF_API_TOKEN = os.environ["CF_API_TOKEN"]
+
+CF_ACCOUNT_ID = os.environ["CFL_ACCOUNT_ID"]
+CF_QUEUE_ID = os.environ["CFL_QUEUE_ID"]
+CF_API_TOKEN = os.environ["CFL_API_TOKEN"]
 
 POLL_INTERVAL = float(os.getenv("POLL_INTERVAL", "2.0"))
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", "10"))
@@ -39,11 +34,11 @@ ACK_URL = (
 )
 
 
-_HANDLERS: dict[str, Callable[[InteractionShim], Awaitable[None]]] = {}
+_HANDLERS: dict[str, Callable[..., Awaitable[None]]] = {}
 _BOT = None
 
 
-def register_handler(name: str, fn: Callable[[InteractionShim], Awaitable[None]]) -> None:
+def register_handler(name: str, fn: Callable[..., Awaitable[None]]) -> None:
     _HANDLERS[name] = fn
 
 
@@ -62,16 +57,12 @@ async def _dispatch(interaction_payload: dict) -> None:
 
     shim = InteractionShim(interaction_payload, _BOT)
 
-    # Translate the interaction's option array into kwargs.
     options = interaction_payload.get("data", {}).get("options", []) or []
     kwargs = {opt["name"]: opt.get("value") for opt in options}
 
     try:
-        # `shim` fills the first parameter (usually `interaction`),
-        # the rest come from the slash command options.
         await handler(shim, **kwargs)
     except TypeError as e:
-        # Most likely a mismatch between slash options and function signature.
         print(f"[ERROR] /{command_name} argument mismatch: {e}")
         try:
             await shim.followup.send(
@@ -90,6 +81,7 @@ async def _dispatch(interaction_payload: dict) -> None:
             )
         except Exception:
             pass
+
 
 async def pull_loop() -> None:
     """Continuously pull batches of interactions and dispatch them."""
@@ -134,12 +126,10 @@ async def pull_loop() -> None:
 
                     interaction = body.get("interaction")
                     if interaction:
-                        # Fire-and-forget so slow commands don't block the loop.
                         asyncio.create_task(_dispatch(interaction))
 
                     ack_leases.append({"lease_id": msg["lease_id"]})
 
-                # Ack all leases in one batch.
                 if ack_leases:
                     async with session.post(
                         ACK_URL,
