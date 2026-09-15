@@ -35,6 +35,24 @@ const STATUS_COMMAND = "set-status";
 const STATUS_KEY = "vps_status";
 const STATUS_TTL_SECONDS = 90;
 
+
+const QUICKSEARCH_COMMAND = "quicksearch";
+
+type QuickSearchMode = "text" | "image";
+
+interface DDGTextResult {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+interface DDGImageResult {
+  title: string;
+  image: string;
+  thumbnail: string;
+  url: string;
+}
+
 // --- Signature verification ----------------------------------------------
 
 async function verifySignature(
@@ -186,7 +204,11 @@ export default {
     if (commandName === STATUS_COMMAND) {
       return handleSetStatus(interaction, env);
     }
-
+    // Quicksearch command — handled entirely in the Worker.
+    if (commandName === QUICKSEARCH_COMMAND) {
+      return handleQuickSearch(interaction);
+    }
+    
     // Stateless commands.
     if (STATELESS_COMMANDS.has(commandName)) {
       return jsonResponse(handleStateless(commandName, interaction));
@@ -207,4 +229,196 @@ export default {
 
     return jsonResponse({ type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE });
   },
+};
+function stripHtml(input: string): string {
+  return input
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .trim();
+}
+
+async function ddgTextResults(
+  query: string,
+  limit: number
+): Promise<DDGTextResult[]> {
+  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+  const resp = await fetch(url, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
+        "(KHTML, like Gecko) Chrome/122.0 Safari/537.36",
+      "Accept-Language": "en-US,en;q=0.9",
+    },
+  });
+  if (!resp.ok) throw new Error(`DDG text returned ${resp.status}`);
+  const html = await resp.text();
+
+  const anchorRe = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
+  const snippetRe =
+    /<(?:a|div|span)\b[^>]*class=["'][^"']*\bresult__snippet\b[^"']*["'][^>]*>([\s\S]*?)<\/(?:a|div|span)>/gi;
+
+  const links: Array<{ href: string; title: string }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = anchorRe.exec(html)) !== null) {
+    const classMatch = m[1].match(/\bclass=["']([^"']*)["']/i);
+    const hrefMatch = m[1].match(/\bhref=["']([^"']+)["']/i);
+    if (classMatch?.[1].split(/\s+/).includes("result__a") && hrefMatch) {
+      links.push({ href: hrefMatch[1], title: stripHtml(m[2]) });
+    }
+  }
+
+  const snippets: string[] = [];
+  while ((m = snippetRe.exec(html)) !== null) {
+    snippets.push(stripHtml(m[1]));
+  }
+
+  const results: DDGTextResult[] = [];
+  for (let i = 0; i < links.length && results.length < limit; i++) {
+    const { href, title } = links[i];
+    // DDG wraps URLs in a redirect: /l/?uddg=<encoded>
+    let realUrl = href;
+    try {
+      const u = new URL(href, "https://duckduckgo.com");
+      const uddg = u.searchParams.get("uddg");
+      if (uddg) realUrl = decodeURIComponent(uddg);
+    } catch {
+      // leave href as-is
+    }
+    results.push({
+      title: title || realUrl,
+      url: realUrl,
+      snippet: snippets[i] ?? "",
+    });
+  }
+  return results;
+}
+
+async function ddgImageResults(
+  query: string,
+  limit: number
+): Promise<DDGImageResult[]> {
+  // DDG image search requires a vqd token from the HTML page.
+  const pageResp = await fetch(
+    `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
+    {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
+          "(KHTML, like Gecko) Chrome/122.0 Safari/537.36",
+      },
+    }
+  );
+  if (!pageResp.ok) throw new Error(`DDG page returned ${pageResp.status}`);
+  const pageHtml = await pageResp.text();
+
+  const vqdMatch =
+    pageHtml.match(/vqd="([^"]+)"/) ?? pageHtml.match(/vqd=([\d-]+)/);
+  if (!vqdMatch) throw new Error("Could not extract vqd token from DDG.");
+  const vqd = vqdMatch[1];
+
+  const apiUrl =
+    `https://duckduckgo.com/i.js?l=us-en&o=json&q=${encodeURIComponent(query)}` +
+    `&vqd=${encodeURIComponent(vqd)}&f=,,,&p=1`;
+  const apiResp = await fetch(apiUrl, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
+        "(KHTML, like Gecko) Chrome/122.0 Safari/537.36",
+      Referer: "https://duckduckgo.com/",
+      Accept: "application/json",
+    },
+  });
+  if (!apiResp.ok) throw new Error(`DDG image API returned ${apiResp.status}`);
+  const data: any = await apiResp.json();
+
+  const out: DDGImageResult[] = [];
+  for (const item of (data.results ?? []).slice(0, limit)) {
+    out.push({
+      title: item.title ?? "",
+      image: item.image ?? "",
+      thumbnail: item.thumbnail ?? "",
+      url: item.url ?? "",
+    });
+  }
+  return out;
+}
+
+async function handleQuickSearch(interaction: any): Promise<Response> {
+  const options = interaction.data?.options ?? [];
+  const query = options.find((o: any) => o.name === "query")?.value ?? "";
+  const mode: QuickSearchMode =
+    (options.find((o: any) => o.name === "option")?.value as QuickSearchMode) ??
+    "text";
+
+  if (!query) {
+    return ephemeral("⚠️ Missing `query`.");
+  }
+
+  if (mode === "image") {
+    try {
+      const images = await ddgImageResults(query, 4);
+      if (images.length === 0) {
+        return ephemeral(`No image results for **${query}**.`);
+      }
+
+      // Each image as its own embed, sent as a single follow-up via
+      // the interaction response (type 4 supports only one embed,
+      // so we send them as separate embeds in the `embeds` array —
+      // Discord allows up to 10 embeds per message).
+      const embeds = images.map((img, i) => ({
+        title: (img.title || "image").slice(0, 256),
+        url: img.url || img.image || undefined,
+        image: { url: img.image || img.thumbnail || undefined },
+        footer: { text: `Result ${i + 1}/${images.length} — query: ${query}` },
+        color: 0x57f287,
+      }));
+
+      return jsonResponse({
+        type: CHANNEL_MESSAGE_WITH_SOURCE,
+        data: {
+          embeds,
+          flags: EPHEMERAL,
+        },
+      });
+    } catch (e) {
+      console.error("quicksearch image failed:", e);
+      return ephemeral(`⚠️ Image search failed: \`${(e as Error).message}\``);
+    }
+  }
+
+  // text mode
+  try {
+    const results = await ddgTextResults(query, 5);
+    if (results.length === 0) {
+      return ephemeral(`No results for **${query}**.`);
+    }
+
+    const lines = results.map((r, i) => {
+      const title = r.title || r.url;
+      const line = `**${i + 1}. [${title}](${r.url})**`;
+      return r.snippet ? `${line}\n${r.snippet.slice(0, 200)}` : line;
+    });
+
+    const embed = {
+      title: `🔎 ${query}`,
+      description: lines.join("\n\n").slice(0, 4000),
+      color: 0x5865f2,
+    };
+
+    return jsonResponse({
+      type: CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        embeds: [embed],
+        flags: EPHEMERAL,
+      },
+    });
+  } catch (e) {
+    console.error("quicksearch text failed:", e);
+    return ephemeral(`⚠️ Search failed: \`${(e as Error).message}\``);
+  }
 };

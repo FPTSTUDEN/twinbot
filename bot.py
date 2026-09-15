@@ -84,6 +84,30 @@ async def set_status(
         "This command is handled by the edge Worker.", ephemeral=True
     )
 
+@bot.tree.command(
+    name="quicksearch",
+    description="Quick web/image search handled by the edge Worker",
+)
+@discord.app_commands.describe(
+    query="What to search for",
+    option="Result type (default: text)",
+)
+@discord.app_commands.choices(option=[
+    discord.app_commands.Choice(name="text", value="text"),
+    discord.app_commands.Choice(name="image", value="image"),
+])
+async def quicksearch(
+    interaction: discord.Interaction,
+    query: str,
+    option: discord.app_commands.Choice[str] = None,
+):
+    # Never runs — the Worker intercepts this command before Discord
+    # routes it to the Gateway. Exists only so Discord publishes the
+    # command in its command list.
+    await interaction.response.send_message(
+        "This command is handled by the edge Worker.", ephemeral=True
+    )
+
 
 async def main():
     tasks = [
