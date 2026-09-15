@@ -130,6 +130,7 @@ class InteractionShim:
     def __init__(self, payload: dict, bot: discord.Client):
         self._payload = payload
         self._bot = bot
+        self.channel = _ChannelProxy(self)
 
         data = payload.get("data", {})
         self.command_name: str = data.get("name", "")
@@ -203,6 +204,44 @@ class InteractionShim:
                     if resp.status >= 300:
                         body = await resp.text()
                         raise RuntimeError(f"Followup failed: {resp.status} {body}")
+
+
+
+class _ChannelProxy:
+    """Thin wrapper around a real discord channel for shim call sites.
+
+    Handlers call `interaction.channel.send(...)`. We resolve the real
+    channel from the bot at call time (bot may not be ready when the
+    shim is constructed) and forward.
+    """
+
+    def __init__(self, shim: "InteractionShim"):
+        self._shim = shim
+
+    def _resolve(self):
+        bot = self._shim._bot
+        if bot is None or self._shim.channel_id is None:
+            return None
+        return bot.get_channel(self._shim.channel_id)
+
+    async def send(self, *args, **kwargs):
+        channel = self._resolve()
+        if channel is None:
+            raise RuntimeError(
+                f"Channel {self._shim.channel_id} not found in cache; "
+                "cannot send."
+            )
+        return await channel.send(*args, **kwargs)
+
+    def __getattr__(self, name):
+        # Delegate anything else (mention, id, guild, etc.) to the real
+        # channel if we can resolve it, otherwise raise a clear error.
+        channel = self._resolve()
+        if channel is None:
+            raise AttributeError(
+                f"_ChannelProxy: channel {self._shim.channel_id} unavailable"
+            )
+        return getattr(channel, name)
 
 
 _BOT_REF: dict[str, discord.Client] = {}
