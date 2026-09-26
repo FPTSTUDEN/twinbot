@@ -310,6 +310,7 @@ async function ddgImageResults(
         "User-Agent":
           "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
           "(KHTML, like Gecko) Chrome/122.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml",
       },
     }
   );
@@ -320,17 +321,30 @@ async function ddgImageResults(
     pageHtml.match(/vqd="([^"]+)"/) ?? pageHtml.match(/vqd=([\d-]+)/);
   if (!vqdMatch) throw new Error("Could not extract vqd token from DDG.");
   const vqd = vqdMatch[1];
+  const setCookie = pageResp.headers.get("set-cookie");
+  const cookie = setCookie
+    ?.split(/, (?=[^;]+=)/)
+    .map((value) => value.split(";", 1)[0])
+    .join("; ");
 
   const apiUrl =
     `https://duckduckgo.com/i.js?l=us-en&o=json&q=${encodeURIComponent(query)}` +
-    `&vqd=${encodeURIComponent(vqd)}&f=,,,&p=1`;
+    `&vqd=${encodeURIComponent(vqd)}&p=1&ct=AT`;
   const apiResp = await fetch(apiUrl, {
     headers: {
       "User-Agent":
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
         "(KHTML, like Gecko) Chrome/122.0 Safari/537.36",
       Referer: "https://duckduckgo.com/",
-      Accept: "application/json",
+      Accept: "*/*",
+      "Accept-Language": "en-US,en;q=0.5",
+      "Sec-GPC": "1",
+      Connection: "keep-alive",
+      "Sec-Fetch-Dest": "empty",
+      "Sec-Fetch-Mode": "cors",
+      "Sec-Fetch-Site": "same-origin",
+      Priority: "u=4",
+      ...(cookie ? { Cookie: cookie } : {}),
     },
   });
   if (!apiResp.ok) throw new Error(`DDG image API returned ${apiResp.status}`);
@@ -348,6 +362,103 @@ async function ddgImageResults(
   return out;
 }
 
+/**
+ * DDG's private image endpoint frequently blocks requests from Cloudflare's
+ * shared egress IPs with 403. Openverse provides a public image API and
+ * direct thumbnail URLs, so use it as the primary provider fallback rather
+ * than making image search fail completely.
+ */
+async function openverseImageResults(
+  query: string,
+  limit: number
+): Promise<DDGImageResult[]> {
+  const params = new URLSearchParams({
+    q: query,
+    page_size: String(limit),
+  });
+  const response = await fetch(
+    `https://api.openverse.org/v1/images/?${params.toString()}`,
+    { headers: { Accept: "application/json" } }
+  );
+  if (!response.ok) {
+    throw new Error(`Openverse image API returned ${response.status}`);
+  }
+
+  const data: any = await response.json();
+  return (data.results ?? [])
+    .slice(0, limit)
+    .map((item: any) => ({
+      title: item.title ?? "",
+      image: item.thumbnail ?? item.url ?? "",
+      thumbnail: item.thumbnail ?? item.url ?? "",
+      url: item.foreign_landing_url ?? item.url ?? "",
+    }))
+    .filter((image: DDGImageResult) => image.image);
+}
+
+async function wikimediaImageResults(
+  query: string,
+  limit: number
+): Promise<DDGImageResult[]> {
+  const params = new URLSearchParams({
+    action: "query",
+    format: "json",
+    origin: "*",
+    generator: "search",
+    gsrnamespace: "6",
+    gsrsearch: query,
+    gsrlimit: String(limit),
+    prop: "imageinfo",
+    iiprop: "url",
+    iiurlwidth: "900",
+  });
+
+  const response = await fetch(
+    `https://commons.wikimedia.org/w/api.php?${params.toString()}`,
+    {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "twinbot/1.0 (Discord image search)",
+      },
+    }
+  );
+  if (!response.ok) {
+    throw new Error(`Wikimedia image API returned ${response.status}`);
+  }
+
+  const data: any = await response.json();
+  return Object.values(data.query?.pages ?? {})
+    .map((page: any) => {
+      const info = page.imageinfo?.[0];
+      return {
+        title: page.title?.replace(/^File:/i, "") ?? "",
+        image: info?.thumburl ?? info?.url ?? "",
+        thumbnail: info?.thumburl ?? info?.url ?? "",
+        url: `https://commons.wikimedia.org/wiki/${encodeURIComponent(
+          page.title ?? ""
+        ).replace(/%20/g, "_")}`,
+      };
+    })
+    .filter((image: DDGImageResult) => image.image);
+}
+
+async function imageResults(
+  query: string,
+  limit: number
+): Promise<DDGImageResult[]> {
+  try {
+    return await ddgImageResults(query, limit);
+  } catch (ddgError) {
+    console.warn("DDG image search unavailable; using fallback:", ddgError);
+    try {
+      return await openverseImageResults(query, limit);
+    } catch (openverseError) {
+      console.warn("Openverse image search unavailable; trying Wikimedia:", openverseError);
+      return wikimediaImageResults(query, limit);
+    }
+  }
+}
+
 async function handleQuickSearch(interaction: any): Promise<Response> {
   const options = interaction.data?.options ?? [];
   const query = options.find((o: any) => o.name === "query")?.value ?? "";
@@ -361,7 +472,7 @@ async function handleQuickSearch(interaction: any): Promise<Response> {
 
   if (mode === "image") {
     try {
-      const images = await ddgImageResults(query, 4);
+      const images = await imageResults(query, 4);
       if (images.length === 0) {
         return ephemeral(`No image results for **${query}**.`);
       }
