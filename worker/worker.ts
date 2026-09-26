@@ -488,10 +488,10 @@ async function handleQuickSearch(interaction: any): Promise<Response> {
       // so we send them as separate embeds in the `embeds` array —
       // Discord allows up to 10 embeds per message).
       const embeds = images.map((img, i) => ({
-        title: (img.title || "image").slice(0, 256),
+        // title: (img.title || "image").slice(0, 256),
         url: img.url || img.image || undefined,
         image: { url: img.image || img.thumbnail || undefined },
-        footer: { text: `Result ${i + 1}/${images.length} — query: ${query}` },
+        // footer: { text: `Result ${i + 1}/${images.length} — query: ${query}` },
         color: 0x57f287,
       }));
 
@@ -499,7 +499,7 @@ async function handleQuickSearch(interaction: any): Promise<Response> {
         type: CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
           embeds,
-          flags: EPHEMERAL,
+          // flags: EPHEMERAL,
         },
       });
     } catch (e) {
