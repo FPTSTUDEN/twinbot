@@ -464,7 +464,13 @@ async function handleQuickSearch(interaction: any): Promise<Response> {
   const query = options.find((o: any) => o.name === "query")?.value ?? "";
   const mode: QuickSearchMode =
     (options.find((o: any) => o.name === "option")?.value as QuickSearchMode) ??
-    "text";
+    "image";
+  const requestedLimit = Number(
+    options.find((o: any) => o.name === "limit")?.value ?? 1
+  );
+  const limit = Number.isInteger(requestedLimit) && requestedLimit > 0
+    ? requestedLimit
+    : 1;
 
   if (!query) {
     return ephemeral("⚠️ Missing `query`.");
@@ -472,7 +478,7 @@ async function handleQuickSearch(interaction: any): Promise<Response> {
 
   if (mode === "image") {
     try {
-      const images = await imageResults(query, 4);
+      const images = await imageResults(query, limit);
       if (images.length === 0) {
         return ephemeral(`No image results for **${query}**.`);
       }
@@ -504,7 +510,7 @@ async function handleQuickSearch(interaction: any): Promise<Response> {
 
   // text mode
   try {
-    const results = await ddgTextResults(query, 5);
+    const results = await ddgTextResults(query, limit);
     if (results.length === 0) {
       return ephemeral(`No results for **${query}**.`);
     }

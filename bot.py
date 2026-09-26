@@ -90,7 +90,8 @@ async def set_status(
 )
 @discord.app_commands.describe(
     query="What to search for",
-    option="Result type (default: text)",
+    option="Result type (default: image)",
+    limit="Number of results (default: 1)",
 )
 @discord.app_commands.choices(option=[
     discord.app_commands.Choice(name="text", value="text"),
@@ -100,6 +101,7 @@ async def quicksearch(
     interaction: discord.Interaction,
     query: str,
     option: discord.app_commands.Choice[str] = None,
+    limit: discord.app_commands.Range[int, 1, 10] = 1,
 ):
     # Never runs — the Worker intercepts this command before Discord
     # routes it to the Gateway. Exists only so Discord publishes the
