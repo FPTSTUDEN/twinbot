@@ -9,3 +9,7 @@ queue = "discord-interactions"
 [[kv_namespaces]]
 binding = "VPS_STATUS"
 id = "3b68fb5b35fa4cd2ad37689bf70302f3"
+
+[observability.logs]
+enabled = true
+invocation_logs = true
