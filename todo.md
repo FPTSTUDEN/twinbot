@@ -1,8 +1,11 @@
 - [x] searcher (image,video etc)
 - [ ] short commands
-  - [ ] new command for worker: /quicksearch query:... option:image(default)/text 
+  - [x] new command for worker: /quicksearch query:... option:image(default)/text 
 - [ ] ~~parrot~~
-- [ ] live reload
+- [ ] /download
+- [ ] ~~live reload~~
+- [ ] Apply filters
+- [ ] RATE LIMIT, (Content Safety), log offenders
 
 
 - [ ] mocking user (fun)
