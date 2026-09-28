@@ -12,6 +12,7 @@ import files
 import interaction_shim
 import queue_poller
 import status_reporter
+import register_commands as register_commands
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -28,11 +29,6 @@ async def on_ready():
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     print(f"Loaded permissions from '{access_control.PERMISSIONS_FILE}':")
     access_control.log_permissions()
-    try:
-        synced = await bot.tree.sync()
-        print(f"Synced {len(synced)} command(s)")
-    except Exception as e:
-        print(f"Failed to sync commands: {e}")
 
 
 # Wire the shim / poller to the real handlers.
@@ -51,64 +47,7 @@ queue_poller.register_handler("files", files.files)
 voice.setup(bot)
 search.setup(bot)
 files.setup(bot)
-
-
-@bot.tree.command(name="ping", description="Replies with Pong!")
-async def ping(interaction: discord.Interaction):
-    await interaction.response.send_message("Pong! 🏓")
-
-
-@bot.tree.command(name="greet", description="Greets a user")
-async def greet(interaction: discord.Interaction, user: discord.Member):
-    await interaction.response.send_message(f"Hello, {user.mention}!")
-
-
-@bot.tree.command(
-    name="set-status",
-    description="Manually set the bot's status flag (handled by the edge Worker)",
-    # default_member_permissions=discord.Permissions(manage_guild=True),
-)
-@discord.app_commands.describe(status="online, offline, or auto")
-@discord.app_commands.choices(status=[
-    discord.app_commands.Choice(name="online", value="online"),
-    discord.app_commands.Choice(name="offline", value="offline"),
-    discord.app_commands.Choice(name="auto", value="auto"),
-])
-async def set_status(
-    interaction: discord.Interaction,
-    status: discord.app_commands.Choice[str],
-):
-    # Never actually runs — the Worker intercepts this command before it
-    # reaches the Gateway. Exists only so Discord registers the command.
-    await interaction.response.send_message(
-        "This command is handled by the edge Worker.", ephemeral=True
-    )
-
-@bot.tree.command(
-    name="quicksearch",
-    description="Quick web/image search handled by the edge Worker",
-)
-@discord.app_commands.describe(
-    query="What to search for",
-    option="Result type (default: image)",
-    limit="Number of results (default: 1)",
-)
-@discord.app_commands.choices(option=[
-    discord.app_commands.Choice(name="text", value="text"),
-    discord.app_commands.Choice(name="image", value="image"),
-])
-async def quicksearch(
-    interaction: discord.Interaction,
-    query: str,
-    option: discord.app_commands.Choice[str] = None,
-    limit: discord.app_commands.Range[int, 1, 10] = 1,
-):
-    # Never runs — the Worker intercepts this command before Discord
-    # routes it to the Gateway. Exists only so Discord publishes the
-    # command in its command list.
-    await interaction.response.send_message(
-        "This command is handled by the edge Worker.", ephemeral=True
-    )
+register_commands.setup(bot)
 
 
 async def main():
