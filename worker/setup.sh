@@ -7,6 +7,10 @@ wrangler queues create discord-interactions
 
 # Set the secret
 wrangler secret put DISCORD_PUBLIC_KEY
+wrangler secret put OPENAI_API_KEY
+wrangler secret put OPENAI_BASE_URL
+# Optional; defaults to gpt-4o-mini if set, otherwise omit this command.
+# wrangler secret put OPENAI_MODEL
 
 # Deploy
 wrangler deploy

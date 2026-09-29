@@ -77,6 +77,17 @@ def setup(bot: commands.Bot) -> None:
             "This command is handled by the edge Worker.", ephemeral=True
         )
 
+    @bot.tree.command(
+        name="chat",
+        description="Ask the configured AI assistant a question",
+    )
+    @discord.app_commands.describe(message="What would you like to ask?")
+    async def chat(interaction: discord.Interaction, message: str) -> None:
+        # The Worker intercepts this command before it reaches the Gateway.
+        await interaction.response.send_message(
+            "This command is handled by the edge Worker.", ephemeral=True
+        )
+
 
 async def _register(token: str) -> None:
     """Connect, sync the command tree once, and disconnect."""
