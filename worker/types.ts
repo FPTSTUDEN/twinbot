@@ -3,6 +3,8 @@ export interface Env {
   OPENAI_API_KEY: string;
   OPENAI_BASE_URL: string;
   OPENAI_MODEL?: string;
+  OPENAI_SYSTEM_PROMPT?: string;
+  OPENAI_REASONING_EFFORT?: string;
   INTERACTION_QUEUE: Queue;
   VPS_STATUS: KVNamespace;
 }

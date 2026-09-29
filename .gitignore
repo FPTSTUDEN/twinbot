@@ -1,3 +1,4 @@
 .env
 users_list.csv
 __pycache__/
+tmp/

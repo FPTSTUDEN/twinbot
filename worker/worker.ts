@@ -13,6 +13,8 @@
  *   OPENAI_API_KEY       — API key for the OpenAI-compatible endpoint
  *   OPENAI_BASE_URL      — endpoint base URL, e.g. https://api.openai.com/v1
  *   OPENAI_MODEL         — optional model name (defaults to gpt-4o-mini)
+ *   OPENAI_SYSTEM_PROMPT — optional system prompt for /chat
+ *   OPENAI_REASONING_EFFORT — optional reasoning effort (provider/model-specific)
  *
  * Required bindings:
  *   INTERACTION_QUEUE    — Cloudflare Queue producer
@@ -32,18 +34,17 @@ import {
 } from "./responses";
 import { handleSetStatus, STATUS_KEY } from "./status";
 import { handleQuickSearch } from "./quicksearch";
+import {
+  CHAT_COMMAND,
+  getChatMessage,
+  handleChat,
+  isChatConfigured,
+} from "./chat";
 import type { DiscordInteraction, Env } from "./types";
 
 const PING = 1;
 const APPLICATION_COMMAND = 2;
 const PONG = 1;
-const CHAT_COMMAND = "chat";
-const DISCORD_API = "https://discord.com/api/v10";
-const DISCORD_MESSAGE_LIMIT = 2000;
-
-function logError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 function interactionLabel(interaction: DiscordInteraction): string {
   return interaction.id ?? "unknown-interaction";
@@ -86,138 +87,6 @@ function hexToBytes(hex: string): Uint8Array {
     bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
   }
   return bytes;
-}
-
-function chatMessage(interaction: DiscordInteraction): string {
-  const value = interaction.data?.options?.find(
-    (option) => option.name === "message"
-  )?.value;
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function chatCompletionsUrl(baseUrl: string): string {
-  const url = baseUrl.replace(/\/+$/, "");
-  return url.endsWith("/chat/completions")
-    ? url
-    : `${url}/chat/completions`;
-}
-
-function splitDiscordMessage(content: string): string[] {
-  const chunks: string[] = [];
-  for (let offset = 0; offset < content.length; offset += DISCORD_MESSAGE_LIMIT) {
-    chunks.push(content.slice(offset, offset + DISCORD_MESSAGE_LIMIT));
-  }
-  return chunks.length > 0 ? chunks : ["(The AI returned an empty message.)"];
-}
-
-async function sendChatFollowup(
-  interaction: DiscordInteraction,
-  content: string
-): Promise<void> {
-  if (!interaction.application_id || !interaction.token) {
-    throw new Error("Discord interaction is missing application_id or token.");
-  }
-
-  const url = `${DISCORD_API}/webhooks/${interaction.application_id}/${interaction.token}`;
-  const chunks = splitDiscordMessage(content);
-  console.log("chat follow-up started", {
-    interactionId: interactionLabel(interaction),
-    chunks: chunks.length,
-  });
-
-  for (const [index, chunk] of chunks.entries()) {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: chunk }),
-    });
-    console.log("chat follow-up response", {
-      interactionId: interactionLabel(interaction),
-      chunk: index + 1,
-      chunks: chunks.length,
-      status: response.status,
-    });
-    if (!response.ok) {
-      throw new Error(`Discord follow-up returned ${response.status}.`);
-    }
-  }
-}
-
-async function handleChat(
-  interaction: DiscordInteraction,
-  env: Env
-): Promise<void> {
-  const startedAt = Date.now();
-  const interactionId = interactionLabel(interaction);
-  const model = env.OPENAI_MODEL || "gpt-4o-mini";
-
-  console.log("chat background task started", {
-    interactionId,
-    model,
-    hasApplicationId: Boolean(interaction.application_id),
-    hasToken: Boolean(interaction.token),
-  });
-
-  try {
-    const aiStartedAt = Date.now();
-    console.log("chat AI request started", { interactionId, model });
-    const response = await fetch(chatCompletionsUrl(env.OPENAI_BASE_URL), {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: env.OPENAI_MODEL || "gpt-4o-mini",
-        messages: [{ role: "user", content: chatMessage(interaction) }],
-      }),
-    });
-
-    console.log("chat AI response received", {
-      interactionId,
-      status: response.status,
-      durationMs: Date.now() - aiStartedAt,
-    });
-
-    if (!response.ok) {
-      throw new Error(`AI endpoint returned ${response.status}.`);
-    }
-
-    const result = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string | null } }>;
-    };
-    const content = result.choices?.[0]?.message?.content?.trim();
-    console.log("chat AI response parsed", {
-      interactionId,
-      hasContent: Boolean(content),
-      contentLength: content?.length ?? 0,
-    });
-    await sendChatFollowup(
-      interaction,
-      content || "(The AI returned an empty message.)"
-    );
-    console.log("chat background task completed", {
-      interactionId,
-      durationMs: Date.now() - startedAt,
-    });
-  } catch (error) {
-    console.error("chat background task failed", {
-      interactionId,
-      durationMs: Date.now() - startedAt,
-      error: logError(error),
-    });
-    try {
-      await sendChatFollowup(
-        interaction,
-        "⚠️ Sorry, I couldn't get a response from the AI service."
-      );
-    } catch (followupError) {
-      console.error("chat error follow-up failed", {
-        interactionId,
-        error: logError(followupError),
-      });
-    }
-  }
 }
 
 // --- Fetch handler --------------------------------------------------------
@@ -291,7 +160,7 @@ export default {
         interactionId: interactionLabel(interaction),
         durationMs: Date.now() - requestStartedAt,
       });
-      if (!env.OPENAI_API_KEY || !env.OPENAI_BASE_URL) {
+      if (!isChatConfigured(env)) {
         console.error("chat command is not configured", {
           interactionId: interactionLabel(interaction),
           hasApiKey: Boolean(env.OPENAI_API_KEY),
@@ -299,7 +168,7 @@ export default {
         });
         return ephemeral("⚠️ Chat is not configured on the Worker.");
       }
-      if (!chatMessage(interaction)) {
+      if (!getChatMessage(interaction)) {
         console.warn("chat command has no message", {
           interactionId: interactionLabel(interaction),
         });

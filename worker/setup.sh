@@ -11,6 +11,9 @@ wrangler secret put OPENAI_API_KEY
 wrangler secret put OPENAI_BASE_URL
 # Optional; defaults to gpt-4o-mini if set, otherwise omit this command.
 # wrangler secret put OPENAI_MODEL
+# Optional system prompt and reasoning effort (for example: low, medium, high).
+# wrangler secret put OPENAI_SYSTEM_PROMPT
+# wrangler secret put OPENAI_REASONING_EFFORT
 
 # Deploy
 wrangler deploy
