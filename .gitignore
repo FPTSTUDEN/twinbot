@@ -2,3 +2,4 @@
 users_list.csv
 __pycache__/
 tmp/
+worker/node_modules/

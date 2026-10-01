@@ -1,4 +1,6 @@
 import type { DiscordInteraction, Env } from "./types";
+import { Resvg } from "@cf-wasm/resvg";
+import { PAPER_FONT_BUFFERS } from "./fonts";
 
 export const PAPER_COMMAND = "paper";
 
@@ -143,9 +145,27 @@ async function loadTemplate(
   return response.text();
 }
 
+async function resolveImages(rendered: Resvg): Promise<void> {
+  // resvg deliberately does not make network requests while rendering. Resolve
+  // every external SVG image explicitly before calling render().
+  for (const href of rendered.imagesToResolve() as string[]) {
+    if (!href.startsWith("https://cdn.discordapp.com/")) {
+      console.warn("paper image skipped: unexpected URL", href);
+      continue;
+    }
+
+    const response = await fetch(href);
+    if (!response.ok) {
+      console.warn("paper avatar fetch failed", { href, status: response.status });
+      continue;
+    }
+    rendered.resolveImage(href, new Uint8Array(await response.arrayBuffer()));
+  }
+}
+
 async function sendPaperFollowup(
   interaction: DiscordInteraction,
-  svg: string,
+  png: Uint8Array,
   templateName: TemplateName
 ): Promise<void> {
   if (!interaction.application_id || !interaction.token) {
@@ -157,13 +177,13 @@ async function sendPaperFollowup(
     "payload_json",
     JSON.stringify({
       content: "📜 Fake paper generated for entertainment purposes only.",
-      attachments: [{ id: "0", filename: `paper-${templateName}.svg` }],
+      attachments: [{ id: "0", filename: `paper-${templateName}.png` }],
     })
   );
   form.append(
     "files[0]",
-    new Blob([svg], { type: "image/svg+xml" }),
-    `paper-${templateName}.svg`
+    new Blob([png], { type: "image/png" }),
+    `paper-${templateName}.png`
   );
 
   const response = await fetch(
@@ -240,7 +260,22 @@ export async function handlePaper(
   try {
     const template = await loadTemplate(env, templateValue);
     const svg = fillTemplate(template, templateValues(interaction, first, second));
-    await sendPaperFollowup(interaction, svg, templateValue);
+    const rendered = await Resvg.async(svg, {
+      fitTo: { mode: "original" },
+      background: "#ffffff",
+      imageRendering: 0,
+      font: {
+        fontBuffers: PAPER_FONT_BUFFERS,
+        defaultFontFamily: "Noto Serif",
+        serifFamily: "Noto Serif",
+      },
+    });
+    await resolveImages(rendered);
+    const image = rendered.render();
+    const png = image.asPng();
+    image.free();
+    rendered.free();
+    await sendPaperFollowup(interaction, png, templateValue);
   } catch (error) {
     console.error("paper generation failed", {
       interactionId: interaction.id ?? "unknown-interaction",

@@ -1,4 +1,5 @@
 # cd worker
+npm install
 npm install -g wrangler
 wrangler login
 
@@ -14,6 +15,10 @@ wrangler secret put OPENAI_BASE_URL
 # Optional system prompt and reasoning effort (for example: low, medium, high).
 # wrangler secret put OPENAI_SYSTEM_PROMPT
 # wrangler secret put OPENAI_REASONING_EFFORT
+
+# Register slash commands after changing register_commands.py.
+# Run this from the repository root:
+# python register_commands.py
 
 # Deploy
 wrangler deploy
