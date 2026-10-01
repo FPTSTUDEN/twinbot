@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700" viewBox="0 0 900 700">
+  <defs>
+    <linearGradient id="marriage-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fdfbf6"/>
+      <stop offset="100%" stop-color="#f6efdf"/>
+    </linearGradient>
+    <pattern id="marriage-dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="12" cy="12" r="0.5" fill="#c9b88c" opacity="0.35"/>
+    </pattern>
+    <radialGradient id="marriage-seal" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#e8d27a"/>
+      <stop offset="70%" stop-color="#c9a441"/>
+      <stop offset="100%" stop-color="#8a6f22"/>
+    </radialGradient>
+    <clipPath id="clip-m1"><circle cx="260" cy="245" r="42"/></clipPath>
+    <clipPath id="clip-m2"><circle cx="640" cy="245" r="42"/></clipPath>
+  </defs>
+
+  <rect width="900" height="700" fill="url(#marriage-bg)"/>
+  <rect width="900" height="700" fill="url(#marriage-dots)"/>
+
+  <rect x="30" y="30" width="840" height="640" fill="none" stroke="#8a6f45" stroke-width="2"/>
+  <rect x="40" y="40" width="820" height="620" fill="none" stroke="#c9b88c" stroke-width="0.75"/>
+
+  <g stroke="#8a6f45" stroke-width="1.2" fill="none">
+    <path d="M55 75 Q55 55 75 55"/>
+    <path d="M55 90 Q55 55 90 55"/>
+    <circle cx="72" cy="72" r="2.5" fill="#8a6f45"/>
+    <path d="M845 75 Q845 55 825 55"/>
+    <path d="M845 90 Q845 55 810 55"/>
+    <circle cx="828" cy="72" r="2.5" fill="#8a6f45"/>
+    <path d="M55 625 Q55 645 75 645"/>
+    <path d="M55 610 Q55 645 90 645"/>
+    <circle cx="72" cy="628" r="2.5" fill="#8a6f45"/>
+    <path d="M845 625 Q845 645 825 645"/>
+    <path d="M845 610 Q845 645 810 645"/>
+    <circle cx="828" cy="628" r="2.5" fill="#8a6f45"/>
+  </g>
+
+  <text x="450" y="105" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#5a4428" letter-spacing="4">CERTIFICATE OF MARRIAGE</text>
+  <line x1="280" y1="122" x2="620" y2="122" stroke="#c9b88c" stroke-width="1"/>
+  <circle cx="450" cy="122" r="2" fill="#c9b88c"/>
+
+  <text x="450" y="160" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#6b5a3a" font-style="italic">This certifies that</text>
+
+  <image href="{{avatar1}}" x="218" y="203" width="84" height="84" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-m1)"/>
+  <circle cx="260" cy="245" r="42" fill="none" stroke="#8a6f45" stroke-width="1.5"/>
+  <circle cx="260" cy="245" r="47" fill="none" stroke="#c9b88c" stroke-width="0.5"/>
+
+  <image href="{{avatar2}}" x="598" y="203" width="84" height="84" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-m2)"/>
+  <circle cx="640" cy="245" r="42" fill="none" stroke="#8a6f45" stroke-width="1.5"/>
+  <circle cx="640" cy="245" r="47" fill="none" stroke="#c9b88c" stroke-width="0.5"/>
+
+  <text x="260" y="320" text-anchor="middle" font-family="Georgia, serif" font-size="26" fill="#2b1f10">{{person1}}</text>
+  <text x="640" y="320" text-anchor="middle" font-family="Georgia, serif" font-size="26" fill="#2b1f10">{{person2}}</text>
+
+  <circle cx="450" cy="270" r="22" fill="none" stroke="#c9b88c" stroke-width="1"/>
+  <text x="450" y="282" text-anchor="middle" font-family="Georgia, serif" font-size="26" fill="#8a6f45" font-style="italic">&amp;</text>
+
+  <text x="450" y="372" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#6b5a3a" font-style="italic">have voluntarily agreed to share:</text>
+
+  <!-- checkbox list -->
+  <g font-family="Georgia, serif" font-size="13" fill="#2b1f10">
+    <text x="330" y="400">☑  memes</text>
+    <text x="330" y="424">☑  food delivery costs</text>
+    <text x="330" y="448">☑  streaming subscriptions</text>
+    <text x="330" y="472">☑  emotional damage</text>
+  </g>
+
+  <line x1="280" y1="505" x2="620" y2="505" stroke="#c9b88c" stroke-width="0.5"/>
+
+  <text x="450" y="540" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#6b5a3a">Effective Date: <tspan fill="#2b1f10">{{date}}</tspan></text>
+
+  <!-- seal -->
+  <circle cx="450" cy="600" r="30" fill="url(#marriage-seal)" stroke="#8a6f22" stroke-width="1"/>
+  <circle cx="450" cy="600" r="24" fill="none" stroke="#f5e6a8" stroke-width="0.5"/>
+  <text x="450" y="597" text-anchor="middle" font-family="Georgia, serif" font-size="7" fill="#2b1f10" letter-spacing="1">OFFICIAL SEAL</text>
+  <text x="450" y="608" text-anchor="middle" font-family="Georgia, serif" font-size="7" fill="#2b1f10" letter-spacing="1">OF QUESTIONABLE</text>
+  <text x="450" y="617" text-anchor="middle" font-family="Georgia, serif" font-size="7" fill="#2b1f10" letter-spacing="1">DECISIONS</text>
+
+  <text x="450" y="668" text-anchor="middle" font-family="Georgia, serif" font-size="9" fill="#a08a5e" font-style="italic">for entertainment only</text>
+</svg>

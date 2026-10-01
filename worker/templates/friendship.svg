@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700" viewBox="0 0 900 700">
+  <defs>
+    <linearGradient id="friendship-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f6faff"/>
+      <stop offset="100%" stop-color="#e8f0fa"/>
+    </linearGradient>
+    <pattern id="friendship-dots" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="13" cy="13" r="0.5" fill="#7a9ac0" opacity="0.3"/>
+    </pattern>
+    <clipPath id="clip-f1"><circle cx="260" cy="255" r="42"/></clipPath>
+    <clipPath id="clip-f2"><circle cx="640" cy="255" r="42"/></clipPath>
+  </defs>
+
+  <rect width="900" height="700" fill="url(#friendship-bg)"/>
+  <rect width="900" height="700" fill="url(#friendship-dots)"/>
+
+  <rect x="30" y="30" width="840" height="640" fill="none" stroke="#3a6ea5" stroke-width="2"/>
+  <rect x="40" y="40" width="820" height="620" fill="none" stroke="#7a9ac0" stroke-width="0.75"/>
+
+  <g stroke="#3a6ea5" stroke-width="1" fill="none">
+    <circle cx="75" cy="75" r="12"/>
+    <circle cx="90" cy="90" r="12"/>
+    <circle cx="825" cy="75" r="12"/>
+    <circle cx="810" cy="90" r="12"/>
+    <circle cx="75" cy="625" r="12"/>
+    <circle cx="90" cy="610" r="12"/>
+    <circle cx="825" cy="625" r="12"/>
+    <circle cx="810" cy="610" r="12"/>
+  </g>
+
+  <text x="450" y="105" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#1e3f66" letter-spacing="4">CERTIFICATE OF FRIENDSHIP</text>
+  <line x1="280" y1="122" x2="620" y2="122" stroke="#7a9ac0" stroke-width="1"/>
+
+  <text x="450" y="160" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#3a5a80" font-style="italic">This is to certify that</text>
+
+  <image href="{{avatar1}}" x="218" y="213" width="84" height="84" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-f1)"/>
+  <circle cx="260" cy="255" r="42" fill="none" stroke="#3a6ea5" stroke-width="1.5"/>
+  <circle cx="260" cy="255" r="47" fill="none" stroke="#7a9ac0" stroke-width="0.5"/>
+
+  <image href="{{avatar2}}" x="598" y="213" width="84" height="84" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-f2)"/>
+  <circle cx="640" cy="255" r="42" fill="none" stroke="#3a6ea5" stroke-width="1.5"/>
+  <circle cx="640" cy="255" r="47" fill="none" stroke="#7a9ac0" stroke-width="0.5"/>
+
+  <text x="260" y="330" text-anchor="middle" font-family="Georgia, serif" font-size="26" fill="#0e2a47">{{person1}}</text>
+  <text x="640" y="330" text-anchor="middle" font-family="Georgia, serif" font-size="26" fill="#0e2a47">{{person2}}</text>
+
+  <g stroke="#3a6ea5" stroke-width="1.5" fill="none">
+    <circle cx="438" cy="255" r="14"/>
+    <circle cx="462" cy="255" r="14"/>
+  </g>
+
+  <text x="450" y="382" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#3a5a80" font-style="italic">are hereby recognised as friends, with the right to:</text>
+
+  <g font-family="Georgia, serif" font-size="13" fill="#0e2a47">
+    <text x="330" y="410">☑  send memes at 3 AM</text>
+    <text x="330" y="434">☑  use "bro" unironically</text>
+    <text x="330" y="458">☑  sit in silence without it being weird</text>
+    <text x="330" y="482">☑  call dibs on the last slice</text>
+  </g>
+
+  <text x="450" y="525" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#3a5a80">Entered this {{date}}</text>
+
+  <circle cx="200" cy="590" r="38" fill="none" stroke="#3a6ea5" stroke-width="1.5" opacity="0.7"/>
+  <text x="200" y="587" text-anchor="middle" font-family="Georgia, serif" font-size="8" fill="#3a6ea5" opacity="0.7" letter-spacing="1">REGISTRAR</text>
+  <text x="200" y="598" text-anchor="middle" font-family="Georgia, serif" font-size="8" fill="#3a6ea5" opacity="0.7" letter-spacing="1">OF FRIENDS</text>
+
+  <text x="450" y="668" text-anchor="middle" font-family="Georgia, serif" font-size="9" fill="#9aa8b8" font-style="italic">for entertainment only</text>
+</svg>

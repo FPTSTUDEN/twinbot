@@ -2,6 +2,10 @@ name = "discord-interactions-router"
 main = "worker.ts"
 compatibility_date = "2024-11-01"
 
+[assets]
+directory = "./templates"
+binding = "ASSETS"
+
 [[queues.producers]]
 binding = "INTERACTION_QUEUE"
 queue = "discord-interactions"

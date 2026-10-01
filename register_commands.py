@@ -88,6 +88,39 @@ def setup(bot: commands.Bot) -> None:
             "This command is handled by the edge Worker.", ephemeral=True
         )
 
+    @bot.tree.command(
+        name="paper",
+        description="Generate a fake paper between two Discord users",
+    )
+    @discord.app_commands.describe(
+        user1="First person",
+        user2="Second person",
+        type="Paper template",
+    )
+    @discord.app_commands.choices(
+        type=[
+            discord.app_commands.Choice(name="Marriage", value="marriage"),
+            discord.app_commands.Choice(name="Divorce", value="divorce"),
+            discord.app_commands.Choice(name="Adoption", value="adoption"),
+            discord.app_commands.Choice(name="Friendship", value="friendship"),
+            discord.app_commands.Choice(name="Doctorate", value="doctorate"),
+            discord.app_commands.Choice(
+                name="Employee of the Month", value="employee-of-the-month"
+            ),
+            discord.app_commands.Choice(name="Nobel Prize", value="nobel"),
+        ]
+    )
+    async def paper(
+        interaction: discord.Interaction,
+        user1: discord.Member,
+        user2: discord.Member,
+        type: discord.app_commands.Choice[str],
+    ) -> None:
+        # The Worker intercepts this command before it reaches the Gateway.
+        await interaction.response.send_message(
+            "This command is handled by the edge Worker.", ephemeral=True
+        )
+
 
 async def _register(token: str) -> None:
     """Connect, sync the command tree once, and disconnect."""

@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700" viewBox="0 0 900 700">
+  <defs>
+    <linearGradient id="divorce-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8f8f5"/>
+      <stop offset="100%" stop-color="#ececea"/>
+    </linearGradient>
+    <clipPath id="clip-d1"><circle cx="260" cy="255" r="42"/></clipPath>
+    <clipPath id="clip-d2"><circle cx="640" cy="255" r="42"/></clipPath>
+  </defs>
+
+  <rect width="900" height="700" fill="url(#divorce-bg)"/>
+  <rect x="30" y="30" width="840" height="640" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+  <rect x="40" y="40" width="820" height="620" fill="none" stroke="#8a8a8a" stroke-width="0.5"/>
+
+  <g stroke="#3a3a3a" stroke-width="1.5">
+    <line x1="55" y1="70" x2="85" y2="70"/>
+    <line x1="55" y1="70" x2="55" y2="100"/>
+    <line x1="845" y1="70" x2="815" y2="70"/>
+    <line x1="845" y1="70" x2="845" y2="100"/>
+    <line x1="55" y1="630" x2="85" y2="630"/>
+    <line x1="55" y1="630" x2="55" y2="600"/>
+    <line x1="845" y1="630" x2="815" y2="630"/>
+    <line x1="845" y1="630" x2="845" y2="600"/>
+  </g>
+
+  <text x="450" y="105" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#1a1a1a" letter-spacing="4">FINAL DECREE OF DIVORCE</text>
+  <line x1="280" y1="122" x2="620" y2="122" stroke="#8a8a8a" stroke-width="1"/>
+
+  <text x="450" y="150" text-anchor="middle" font-family="Courier New, monospace" font-size="11" fill="#555">CASE NO. {{case_id}}</text>
+
+  <text x="450" y="185" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#555" font-style="italic">The Court finds that</text>
+
+  <image href="{{avatar1}}" x="218" y="213" width="84" height="84" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-d1)"/>
+  <circle cx="260" cy="255" r="42" fill="none" stroke="#3a3a3a" stroke-width="1.5"/>
+
+  <image href="{{avatar2}}" x="598" y="213" width="84" height="84" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-d2)"/>
+  <circle cx="640" cy="255" r="42" fill="none" stroke="#3a3a3a" stroke-width="1.5"/>
+
+  <text x="260" y="330" text-anchor="middle" font-family="Georgia, serif" font-size="26" fill="#111">{{person1}}</text>
+  <text x="640" y="330" text-anchor="middle" font-family="Georgia, serif" font-size="26" fill="#111">{{person2}}</text>
+
+  <line x1="425" y1="280" x2="475" y2="280" stroke="#3a3a3a" stroke-width="1.5"/>
+  <line x1="430" y1="272" x2="445" y2="288" stroke="#3a3a3a" stroke-width="1"/>
+  <line x1="455" y1="272" x2="470" y2="288" stroke="#3a3a3a" stroke-width="1"/>
+
+  <text x="450" y="382" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#555" font-style="italic">are no longer required to:</text>
+
+  <g font-family="Georgia, serif" font-size="13" fill="#111">
+    <text x="330" y="410">☐  reply "u too"</text>
+    <text x="330" y="434">☐  share fries</text>
+    <text x="330" y="458">☐  pretend to like each other's playlists</text>
+  </g>
+
+  <line x1="280" y1="490" x2="620" y2="490" stroke="#8a8a8a" stroke-width="0.5"/>
+
+  <text x="450" y="520" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#444">Irreconcilable Differences: <tspan font-style="italic">{{reason}}</tspan></text>
+  <text x="450" y="548" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#444">Effective: {{date}}</text>
+
+  <text x="450" y="595" text-anchor="middle" font-family="Georgia, serif" font-size="18" fill="#111" letter-spacing="4">SO ORDERED</text>
+
+  <g transform="translate(700 600) rotate(-12)">
+    <rect x="-90" y="-28" width="180" height="56" fill="none" stroke="#a83232" stroke-width="3" rx="4"/>
+    <rect x="-84" y="-22" width="168" height="44" fill="none" stroke="#a83232" stroke-width="1" rx="2"/>
+    <text x="0" y="4" text-anchor="middle" font-family="Georgia, serif" font-size="20" fill="#a83232" font-weight="bold" letter-spacing="3">APPROVED</text>
+  </g>
+
+  <text x="450" y="668" text-anchor="middle" font-family="Georgia, serif" font-size="9" fill="#999" font-style="italic">for entertainment only</text>
+</svg>

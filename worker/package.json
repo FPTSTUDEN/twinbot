@@ -1,0 +1,9 @@
+{
+  "name": "discord-interactions-router",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@cf-wasm/resvg": "^0.4.0",
+    "@fontsource/noto-serif": "^5.3.0"
+  }
+}
