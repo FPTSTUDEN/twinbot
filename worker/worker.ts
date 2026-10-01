@@ -34,6 +34,7 @@ import {
 } from "./responses";
 import { handleSetStatus, STATUS_KEY } from "./status";
 import { handleQuickSearch } from "./quicksearch";
+import { handlePaper, PAPER_COMMAND } from "./paper";
 import {
   CHAT_COMMAND,
   getChatMessage,
@@ -196,6 +197,12 @@ export default {
     // Quicksearch command — handled entirely in the Worker.
     if (commandName === QUICKSEARCH_COMMAND) {
       return handleQuickSearch(interaction);
+    }
+
+    // Paper command — load a template and upload the generated SVG directly.
+    if (commandName === PAPER_COMMAND) {
+      ctx.waitUntil(handlePaper(interaction, env));
+      return jsonResponse({ type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE });
     }
     
     // Stateless commands.

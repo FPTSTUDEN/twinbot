@@ -7,6 +7,14 @@ export interface Env {
   OPENAI_REASONING_EFFORT?: string;
   INTERACTION_QUEUE: Queue;
   VPS_STATUS: KVNamespace;
+  ASSETS: Fetcher;
+}
+
+export interface DiscordResolvedUser {
+  id?: string;
+  username?: string;
+  global_name?: string | null;
+  avatar?: string | null;
 }
 
 export interface DiscordInteraction {
@@ -16,6 +24,9 @@ export interface DiscordInteraction {
   data?: {
     name?: string;
     options?: Array<{ name: string; value?: string | number }>;
+  };
+  resolved?: {
+    users?: Record<string, DiscordResolvedUser>;
   };
   type?: number;
 }
