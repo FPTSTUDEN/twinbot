@@ -1,5 +1,6 @@
 export interface Env {
   DISCORD_PUBLIC_KEY: string;
+  DISCORD_TOKEN?: string;
   OPENAI_API_KEY: string;
   OPENAI_BASE_URL: string;
   OPENAI_MODEL?: string;
@@ -17,17 +18,24 @@ export interface DiscordResolvedUser {
   avatar?: string | null;
 }
 
+export interface DiscordResolvedMember {
+  user?: DiscordResolvedUser;
+  nick?: string | null;
+  avatar?: string | null;
+}
+
 export interface DiscordInteraction {
   id?: string;
   token?: string;
   application_id?: string;
+  guild_id?: string;
   data?: {
     name?: string;
     options?: Array<{ name: string; value?: string | number }>;
   };
   resolved?: {
     users?: Record<string, DiscordResolvedUser>;
-    members?: Record<string, DiscordResolvedUser>;
+    members?: Record<string, DiscordResolvedMember>;
   };
   type?: number;
 }

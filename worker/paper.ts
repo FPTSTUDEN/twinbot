@@ -24,6 +24,57 @@ interface ResolvedUser {
   avatar?: string | null;
 }
 
+interface ResolvedMember {
+  user?: ResolvedUser;
+  nick?: string | null;
+  avatar?: string | null;
+}
+
+function discordHeaders(token: string): HeadersInit {
+  return {
+    Authorization: `Bot ${token}`,
+    Accept: "application/json",
+  };
+}
+
+async function fetchDiscordUser(
+  userId: string,
+  token: string
+): Promise<ResolvedUser | undefined> {
+  const response = await fetch(`${DISCORD_API}/users/${userId}`, {
+    headers: discordHeaders(token),
+  });
+  if (!response.ok) {
+    console.warn("paper Discord user lookup failed", {
+      userId,
+      status: response.status,
+    });
+    return undefined;
+  }
+  return (await response.json()) as ResolvedUser;
+}
+
+async function fetchDiscordMember(
+  guildId: string | undefined,
+  userId: string,
+  token: string
+): Promise<ResolvedMember | undefined> {
+  if (!guildId) return undefined;
+  const response = await fetch(
+    `${DISCORD_API}/guilds/${guildId}/members/${userId}`,
+    { headers: discordHeaders(token) }
+  );
+  if (!response.ok) {
+    console.warn("paper Discord member lookup failed", {
+      guildId,
+      userId,
+      status: response.status,
+    });
+    return undefined;
+  }
+  return (await response.json()) as ResolvedMember;
+}
+
 function optionValue(
   interaction: DiscordInteraction,
   name: string
@@ -116,20 +167,54 @@ function fillTemplate(template: string, values: Record<string, string>): string 
   });
 }
 
-function resolvedUser(
+async function resolvedUser(
   interaction: DiscordInteraction,
-  userId: string
-): ResolvedUser {
+  userId: string,
+  env: Env
+): Promise<ResolvedUser> {
   const user = interaction.resolved?.users?.[userId];
-  if (user) return { ...user, id: user.id ?? userId };
+  const member = interaction.resolved?.members?.[userId] as
+    | ResolvedMember
+    | undefined;
+  const memberUser = member?.user;
 
-  // Some forwarding layers preserve resolved members but omit the separate
-  // users map. Member records still identify the selected user, so retain the
-  // ID and use a safe fallback display name/avatar.
-  const member = interaction.resolved?.members?.[userId];
-  if (member) return { ...member, id: member.id ?? userId };
+  let result: ResolvedUser = {
+    ...(user ?? {}),
+    ...(memberUser ?? {}),
+    id: user?.id ?? memberUser?.id ?? userId,
+    global_name:
+      member?.nick?.trim() || user?.global_name || memberUser?.global_name,
+    avatar: user?.avatar ?? memberUser?.avatar ?? member?.avatar,
+  };
 
-  return { id: userId, username: `User ${userId.slice(-4)}` };
+  if (env.DISCORD_TOKEN && (!result.username || !result.avatar)) {
+    const apiUser = await fetchDiscordUser(userId, env.DISCORD_TOKEN);
+    if (apiUser) {
+      result = {
+        ...result,
+        ...apiUser,
+        id: apiUser.id ?? userId,
+        global_name:
+          member?.nick?.trim() || apiUser.global_name || result.global_name,
+      };
+    }
+  }
+
+  if (env.DISCORD_TOKEN && interaction.guild_id && !member?.nick) {
+    const apiMember = await fetchDiscordMember(
+      interaction.guild_id,
+      userId,
+      env.DISCORD_TOKEN
+    );
+    if (apiMember?.nick?.trim()) {
+      result.global_name = apiMember.nick.trim();
+    }
+  }
+
+  return {
+    ...result,
+    username: result.username || `User ${userId.slice(-4)}`,
+  };
 }
 
 async function loadTemplate(
@@ -145,7 +230,7 @@ async function loadTemplate(
   return response.text();
 }
 
-async function resolveImages(rendered: Resvg): Promise<void> {
+async function resolveImages(rendered: Resvg, token?: string): Promise<void> {
   // resvg deliberately does not make network requests while rendering. Resolve
   // every external SVG image explicitly before calling render().
   for (const href of rendered.imagesToResolve() as string[]) {
@@ -154,7 +239,9 @@ async function resolveImages(rendered: Resvg): Promise<void> {
       continue;
     }
 
-    const response = await fetch(href);
+    const response = await fetch(href, {
+      headers: token ? { Authorization: `Bot ${token}` } : undefined,
+    });
     if (!response.ok) {
       console.warn("paper avatar fetch failed", { href, status: response.status });
       continue;
@@ -242,8 +329,10 @@ export async function handlePaper(
     return;
   }
 
-  const first = resolvedUser(interaction, firstId);
-  const second = resolvedUser(interaction, secondId);
+  const [first, second] = await Promise.all([
+    resolvedUser(interaction, firstId, env),
+    resolvedUser(interaction, secondId, env),
+  ]);
 
   console.log("paper users resolved", {
     interactionId: interaction.id ?? "unknown-interaction",
@@ -270,7 +359,7 @@ export async function handlePaper(
         serifFamily: "Noto Serif",
       },
     });
-    await resolveImages(rendered);
+    await resolveImages(rendered, env.DISCORD_TOKEN);
     const image = rendered.render();
     const png = image.asPng();
     image.free();
