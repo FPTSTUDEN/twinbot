@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Paper template preview</title>
+  <style>
+    body {
+      margin: 0;
+      background: #1e1f22;
+      color: #ddd;
+      font-family: system-ui, sans-serif;
+    }
+    header {
+      padding: 16px 24px;
+      background: #2b2d31;
+      border-bottom: 1px solid #3a3d42;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    h1 { margin: 0 0 12px; font-size: 18px; font-weight: 600; }
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .controls label { font-size: 12px; color: #aaa; }
+    input[type="text"] {
+      background: #1e1f22;
+      border: 1px solid #3a3d42;
+      border-radius: 4px;
+      color: #ddd;
+      padding: 6px 10px;
+      font-size: 13px;
+      width: 160px;
+    }
+    select {
+      background: #1e1f22;
+      border: 1px solid #3a3d42;
+      border-radius: 4px;
+      color: #ddd;
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+    main {
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+    }
+    .stage {
+      background: #fff;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      border-radius: 6px;
+      overflow: hidden;
+      max-width: 100%;
+    }
+    .stage img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+    .note { font-size: 12px; color: #888; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Paper template preview</h1>
+    <div class="controls">
+      <label>Type:
+        <select id="type">
+          <option value="marriage">marriage</option>
+          <option value="divorce">divorce</option>
+          <option value="nobel">nobel</option>
+          <option value="adoption">adoption</option>
+          <option value="doctorate">doctorate</option>
+          <option value="friendship">friendship</option>
+          <option value="employee-of-the-month">employee-of-the-month</option>
+        </select>
+      </label>
+      <label>Person 1: <input id="person1" type="text" value="Alice"></label>
+      <label>Person 2: <input id="person2" type="text" value="Bob"></label>
+      <label>Title/Field: <input id="title" type="text" value="Physics"></label>
+      <label>Date: <input id="date" type="text" value="October 1, 2026"></label>
+    </div>
+    <div class="note">
+      Place <code>avatar1.png</code> and <code>avatar2.png</code> next to this file to see them.
+    </div>
+  </header>
+  <main>
+    <div class="stage">
+      <img id="preview" alt="Paper preview">
+    </div>
+  </main>
+
+  <script>
+    const els = {
+      type: document.getElementById('type'),
+      person1: document.getElementById('person1'),
+      person2: document.getElementById('person2'),
+      title: document.getElementById('title'),
+      date: document.getElementById('date'),
+      preview: document.getElementById('preview'),
+    };
+
+    async function render() {
+      const type = els.type.value;
+      const svgText = await fetch(`${type}.svg`).then(r => r.text());
+
+      const vars = {
+        person1: els.person1.value,
+        person2: els.person2.value,
+        title: els.title.value,
+        field: els.title.value,
+        date: els.date.value,
+        avatar1: 'avatar1.png',
+        avatar2: 'avatar2.png',
+      };
+
+      const filled = svgText.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+        const v = vars[key] ?? '';
+        // Escape XML for text substitutions, but leave URLs alone.
+        if (key === 'avatar1' || key === 'avatar2') return v;
+        return v
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&apos;');
+      });
+
+      els.preview.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(filled);
+    }
+
+    // Re-render on any change.
+    for (const el of [els.type, els.person1, els.person2, els.title, els.date]) {
+      el.addEventListener('input', render);
+    }
+
+    render();
+  </script>
+</body>
+</html>

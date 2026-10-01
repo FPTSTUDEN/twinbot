@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700" viewBox="0 0 900 700">
+  <defs>
+    <linearGradient id="adoption-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fdf8f4"/>
+      <stop offset="100%" stop-color="#f5e8dc"/>
+    </linearGradient>
+    <pattern id="adoption-dots" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="14" cy="14" r="0.5" fill="#c98a6a" opacity="0.3"/>
+    </pattern>
+    <clipPath id="clip-a1"><circle cx="260" cy="255" r="42"/></clipPath>
+    <clipPath id="clip-a2"><circle cx="640" cy="255" r="42"/></clipPath>
+  </defs>
+
+  <rect width="900" height="700" fill="url(#adoption-bg)"/>
+  <rect width="900" height="700" fill="url(#adoption-dots)"/>
+
+  <rect x="30" y="30" width="840" height="640" fill="none" stroke="#a5654a" stroke-width="2"/>
+  <rect x="40" y="40" width="820" height="620" fill="none" stroke="#c98a6a" stroke-width="0.75"/>
+
+  <g stroke="#a5654a" stroke-width="1" fill="none" opacity="0.8">
+    <path d="M55 95 Q55 60 90 60 Q110 60 115 80"/>
+    <circle cx="90" cy="60" r="2.5" fill="#c98a6a"/>
+    <path d="M845 95 Q845 60 810 60 Q790 60 785 80"/>
+    <circle cx="810" cy="60" r="2.5" fill="#c98a6a"/>
+    <path d="M55 605 Q55 640 90 640 Q110 640 115 620"/>
+    <circle cx="90" cy="640" r="2.5" fill="#c98a6a"/>
+    <path d="M845 605 Q845 640 810 640 Q790 640 785 620"/>
+    <circle cx="810" cy="640" r="2.5" fill="#c98a6a"/>
+  </g>
+
+  <text x="450" y="105" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#8a4a2a" letter-spacing="4">CERTIFICATE OF ADOPTION</text>
+  <line x1="280" y1="122" x2="620" y2="122" stroke="#c98a6a" stroke-width="1"/>
+
+  <text x="450" y="160" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#8a4a2a" font-style="italic">Hereby declared, that henceforth</text>
+
+  <image href="{{avatar1}}" x="218" y="213" width="84" height="84" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-a1)"/>
+  <circle cx="260" cy="255" r="42" fill="none" stroke="#a5654a" stroke-width="1.5"/>
+  <circle cx="260" cy="255" r="47" fill="none" stroke="#c98a6a" stroke-width="0.5"/>
+
+  <image href="{{avatar2}}" x="598" y="213" width="84" height="84" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-a2)"/>
+  <circle cx="640" cy="255" r="42" fill="none" stroke="#a5654a" stroke-width="1.5"/>
+  <circle cx="640" cy="255" r="47" fill="none" stroke="#c98a6a" stroke-width="0.5"/>
+
+  <text x="260" y="330" text-anchor="middle" font-family="Georgia, serif" font-size="26" fill="#3b1f14">{{person1}}</text>
+  <text x="640" y="330" text-anchor="middle" font-family="Georgia, serif" font-size="26" fill="#3b1f14">{{person2}}</text>
+
+  <g stroke="#a5654a" stroke-width="1.5" fill="none">
+    <line x1="410" y1="255" x2="490" y2="255"/>
+    <polyline points="480,247 490,255 480,263"/>
+  </g>
+
+  <text x="450" y="382" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#8a4a2a" font-style="italic">is hereby granted:</text>
+
+  <g font-family="Georgia, serif" font-size="13" fill="#3b1f14">
+    <text x="330" y="410">☑  permission to call them "parent"</text>
+    <text x="330" y="434">☑  access to the snack cupboard</text>
+    <text x="330" y="458">☑  one (1) embarrassing baby photo</text>
+    <text x="330" y="482">☑  unlimited bedtime stories</text>
+  </g>
+
+  <text x="450" y="525" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#8a4a2a">Entered this {{date}}</text>
+
+  <circle cx="200" cy="590" r="38" fill="none" stroke="#a5654a" stroke-width="2" opacity="0.7"/>
+  <text x="200" y="587" text-anchor="middle" font-family="Georgia, serif" font-size="8" fill="#a5654a" opacity="0.7" letter-spacing="1">COURT</text>
+  <text x="200" y="598" text-anchor="middle" font-family="Georgia, serif" font-size="8" fill="#a5654a" opacity="0.7" letter-spacing="1">REGISTRAR</text>
+
+  <text x="450" y="668" text-anchor="middle" font-family="Georgia, serif" font-size="9" fill="#c9a08a" font-style="italic">for entertainment only</text>
+</svg>

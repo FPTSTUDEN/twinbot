@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700" viewBox="0 0 900 700">
+  <defs>
+    <linearGradient id="nobel-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbfaf6"/>
+      <stop offset="100%" stop-color="#f2efe6"/>
+    </linearGradient>
+    <radialGradient id="nobel-medal" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#e8d27a"/>
+      <stop offset="70%" stop-color="#c9a441"/>
+      <stop offset="100%" stop-color="#8a6f22"/>
+    </radialGradient>
+    <clipPath id="clip-n1"><circle cx="450" cy="415" r="52"/></clipPath>
+  </defs>
+
+  <rect width="900" height="700" fill="url(#nobel-bg)"/>
+  <rect x="40" y="40" width="820" height="620" fill="none" stroke="#8a6f22" stroke-width="1.5"/>
+  <rect x="50" y="50" width="800" height="600" fill="none" stroke="#c9a441" stroke-width="0.5"/>
+
+  <g stroke="#c9a441" stroke-width="1" fill="none" opacity="0.7">
+    <path d="M70 90 Q85 70 110 75"/>
+    <path d="M70 90 Q75 110 95 115"/>
+    <path d="M830 90 Q815 70 790 75"/>
+    <path d="M830 90 Q825 110 805 115"/>
+    <path d="M70 610 Q85 630 110 625"/>
+    <path d="M70 610 Q75 590 95 585"/>
+    <path d="M830 610 Q815 630 790 625"/>
+    <path d="M830 610 Q825 590 805 585"/>
+  </g>
+
+  <circle cx="450" cy="125" r="42" fill="url(#nobel-medal)" stroke="#8a6f22" stroke-width="1"/>
+  <text x="450" y="140" text-anchor="middle" font-family="Georgia, serif" font-size="40" fill="#3b2f0e">N</text>
+
+  <text x="450" y="210" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#5a4a1a" letter-spacing="3">THE COMMITTEE FOR</text>
+  <text x="450" y="232" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#5a4a1a" letter-spacing="3">HIGHLY IMPORTANT ACHIEVEMENTS</text>
+
+  <line x1="300" y1="250" x2="600" y2="250" stroke="#c9a441" stroke-width="0.75"/>
+  <circle cx="450" cy="250" r="2" fill="#c9a441"/>
+
+  <text x="450" y="290" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#5a4a1a" font-style="italic">has awarded the</text>
+
+  <text x="450" y="330" text-anchor="middle" font-family="Georgia, serif" font-size="20" fill="#2b1f10" letter-spacing="4">NOBEL PRIZE IN</text>
+  <text x="450" y="360" text-anchor="middle" font-family="Georgia, serif" font-size="24" fill="#2b1f10" letter-spacing="2">{{field}}</text>
+
+  <text x="450" y="395" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#5a4a1a" font-style="italic">to</text>
+
+  <image href="{{avatar1}}" x="398" y="363" width="104" height="104" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-n1)"/>
+  <circle cx="450" cy="415" r="52" fill="none" stroke="#c9a441" stroke-width="2"/>
+  <circle cx="450" cy="415" r="58" fill="none" stroke="#8a6f22" stroke-width="0.5"/>
+
+  <text x="450" y="510" text-anchor="middle" font-family="Georgia, serif" font-size="34" fill="#1a1a1a">{{person1}}</text>
+
+  <text x="450" y="548" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#5a4a1a" font-style="italic">for outstanding contributions to</text>
+  <text x="450" y="572" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#2b1f10" font-style="italic">{{achievement}}</text>
+
+  <text x="450" y="620" text-anchor="middle" font-family="Georgia, serif" font-size="11" fill="#5a4a1a">Stockholm, {{year}}</text>
+
+  <text x="450" y="668" text-anchor="middle" font-family="Georgia, serif" font-size="9" fill="#a08a5e" font-style="italic">for entertainment only</text>
+</svg>
