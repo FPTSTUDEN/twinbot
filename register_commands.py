@@ -94,8 +94,10 @@ def setup(bot: commands.Bot) -> None:
     )
     @discord.app_commands.describe(
         user1="First person",
-        user2="Second person",
         type="Paper template",
+        user2="Optional second person",
+        field="Optional field, discipline, or role",
+        achievement="Optional achievement or contribution",
     )
     @discord.app_commands.choices(
         type=[
@@ -113,8 +115,10 @@ def setup(bot: commands.Bot) -> None:
     async def paper(
         interaction: discord.Interaction,
         user1: discord.Member,
-        user2: discord.Member,
         type: discord.app_commands.Choice[str],
+        user2: discord.Member = None,
+        field: str = None,
+        achievement: str = None,
     ) -> None:
         # The Worker intercepts this command before it reaches the Gateway.
         await interaction.response.send_message(

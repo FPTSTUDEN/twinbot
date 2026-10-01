@@ -1,6 +1,6 @@
 import type { DiscordInteraction, Env } from "./types";
 import { Resvg } from "@cf-wasm/resvg";
-import { PAPER_FONT_BUFFERS } from "./fonts";
+import { PAPER_FONT_BUFFERS, SIGNATURE_FONT_BUFFERS } from "./fonts";
 
 export const PAPER_COMMAND = "paper";
 
@@ -87,6 +87,15 @@ function optionValue(
     : "";
 }
 
+function optionalOptionValue(
+  interaction: DiscordInteraction,
+  name: string,
+  fallback: string
+): string {
+  const value = optionValue(interaction, name).trim();
+  return value || fallback;
+}
+
 function isTemplateName(value: string): value is TemplateName {
   return (TEMPLATE_NAMES as readonly string[]).includes(value);
 }
@@ -142,7 +151,9 @@ function caseId(interaction: DiscordInteraction): string {
 function templateValues(
   interaction: DiscordInteraction,
   first: ResolvedUser,
-  second: ResolvedUser
+  second: ResolvedUser,
+  field: string,
+  achievement: string
 ): Record<string, string> {
   const currentDate = today();
   return {
@@ -153,8 +164,8 @@ function templateValues(
     date: escapeXml(currentDate.date),
     year: currentDate.year,
     case_id: escapeXml(caseId(interaction)),
-    field: "Advanced Memetics",
-    achievement: "exceptional commitment to internet culture",
+    field: escapeXml(field),
+    achievement: escapeXml(achievement),
     reason: "the group chat became legally complicated",
   };
 }
@@ -309,12 +320,18 @@ export async function handlePaper(
   const firstId = optionValue(interaction, "user1");
   const secondId = optionValue(interaction, "user2");
   const templateValue = optionValue(interaction, "type");
+  const field = optionalOptionValue(interaction, "field", "Advanced Memetics");
+  const achievement = optionalOptionValue(
+    interaction,
+    "achievement",
+    "exceptional commitment to internet culture"
+  );
 
-  if (!firstId || !secondId) {
-    await sendErrorFollowup(interaction, "⚠️ Please select two Discord users.");
+  if (!firstId) {
+    await sendErrorFollowup(interaction, "⚠️ Please select a first Discord user.");
     return;
   }
-  if (firstId === secondId) {
+  if (secondId && firstId === secondId) {
     await sendErrorFollowup(
       interaction,
       "⚠️ Please select two different Discord users."
@@ -331,30 +348,34 @@ export async function handlePaper(
 
   const [first, second] = await Promise.all([
     resolvedUser(interaction, firstId, env),
-    resolvedUser(interaction, secondId, env),
+    resolvedUser(interaction, secondId || firstId, env),
   ]);
 
   console.log("paper users resolved", {
     interactionId: interaction.id ?? "unknown-interaction",
     firstId,
-    secondId,
+    secondId: secondId || firstId,
     resolvedUserIds: Object.keys(interaction.resolved?.users ?? {}),
     resolvedMemberIds: Object.keys(interaction.resolved?.members ?? {}),
     usedFallbackFirst: !interaction.resolved?.users?.[firstId] &&
       !interaction.resolved?.members?.[firstId],
-    usedFallbackSecond: !interaction.resolved?.users?.[secondId] &&
-      !interaction.resolved?.members?.[secondId],
+    usedFallbackSecond: Boolean(secondId) &&
+      !interaction.resolved?.users?.[secondId!] &&
+      !interaction.resolved?.members?.[secondId!],
   });
 
   try {
     const template = await loadTemplate(env, templateValue);
-    const svg = fillTemplate(template, templateValues(interaction, first, second));
+    const svg = fillTemplate(
+      template,
+      templateValues(interaction, first, second, field, achievement)
+    );
     const rendered = await Resvg.async(svg, {
       fitTo: { mode: "original" },
       background: "#ffffff",
       imageRendering: 0,
       font: {
-        fontBuffers: PAPER_FONT_BUFFERS,
+        fontBuffers: [...PAPER_FONT_BUFFERS, ...SIGNATURE_FONT_BUFFERS],
         defaultFontFamily: "Noto Serif",
         serifFamily: "Noto Serif",
       },

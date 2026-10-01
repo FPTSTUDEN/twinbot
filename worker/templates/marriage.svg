@@ -7,7 +7,7 @@
     <pattern id="marriage-dots" width="24" height="24" patternUnits="userSpaceOnUse">
       <circle cx="12" cy="12" r="0.5" fill="#c9b88c" opacity="0.35"/>
     </pattern>
-    <radialGradient id="marriage-seal" cx="50%" cy="40%" r="60%">
+    <radialGradient id="marriage-seal" cx="42%" cy="35%" r="70%">
       <stop offset="0%" stop-color="#e8d27a"/>
       <stop offset="70%" stop-color="#c9a441"/>
       <stop offset="100%" stop-color="#8a6f22"/>
@@ -72,11 +72,10 @@
   <text x="450" y="540" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#6b5a3a">Effective Date: <tspan fill="#2b1f10">{{date}}</tspan></text>
 
   <!-- seal -->
-  <circle cx="450" cy="600" r="30" fill="url(#marriage-seal)" stroke="#8a6f22" stroke-width="1"/>
-  <circle cx="450" cy="600" r="24" fill="none" stroke="#f5e6a8" stroke-width="0.5"/>
-  <text x="450" y="597" text-anchor="middle" font-family="Georgia, serif" font-size="7" fill="#2b1f10" letter-spacing="1">OFFICIAL SEAL</text>
-  <text x="450" y="608" text-anchor="middle" font-family="Georgia, serif" font-size="7" fill="#2b1f10" letter-spacing="1">OF QUESTIONABLE</text>
-  <text x="450" y="617" text-anchor="middle" font-family="Georgia, serif" font-size="7" fill="#2b1f10" letter-spacing="1">DECISIONS</text>
+  <path d="M450 566 L457 570 L467 568 L474 576 L485 578 L487 589 L496 596 L491 606 L494 617 L484 623 L480 634 L468 634 L460 642 L450 638 L440 642 L432 634 L420 634 L416 623 L406 617 L409 606 L404 596 L413 589 L415 578 L426 576 L433 568 L443 570 Z" fill="url(#marriage-seal)" stroke="#8a6f22" stroke-width="1.5"/>
+  <circle cx="450" cy="604" r="27" fill="none" stroke="#f5e6a8" stroke-width="0.8" stroke-dasharray="2 2"/>
+  <text x="450" y="600" text-anchor="middle" font-family="Georgia, serif" font-size="7" fill="#2b1f10" letter-spacing="1">OFFICIAL SEAL</text>
+  <text x="450" y="611" text-anchor="middle" font-family="Georgia, serif" font-size="7" fill="#2b1f10" letter-spacing="1">QUESTIONABLE DECISIONS</text>
 
   <text x="450" y="668" text-anchor="middle" font-family="Georgia, serif" font-size="9" fill="#a08a5e" font-style="italic">for entertainment only</text>
 </svg>

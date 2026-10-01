@@ -43,8 +43,9 @@
 
   <text x="450" y="615" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#5a4a1a">For the month of {{date}}</text>
 
-  <line x1="580" y1="640" x2="780" y2="640" stroke="#8a6f22" stroke-width="0.75"/>
-  <text x="680" y="656" text-anchor="middle" font-family="Georgia, serif" font-size="11" fill="#5a4a1a">Authorised Signature</text>
+  <text x="680" y="638" text-anchor="middle" font-family="Caveat, cursive" font-size="25" fill="#3b2f1a" font-style="italic">A. Registrar</text>
+  <line x1="580" y1="642" x2="780" y2="642" stroke="#8a6f22" stroke-width="0.75"/>
+  <text x="680" y="658" text-anchor="middle" font-family="Caveat, cursive" font-size="16" fill="#5a4a1a">Authorised Signature</text>
 
   <text x="450" y="685" text-anchor="middle" font-family="Georgia, serif" font-size="9" fill="#a08a5e" font-style="italic">for entertainment only</text>
 </svg>

@@ -52,6 +52,14 @@ python register_commands.py
 
 The Discord application's Interactions Endpoint URL must point to the deployed Worker URL.
 
+The `/paper` syntax is:
+
+```text
+/paper type:<template> user1:<required member> user2:<optional member> field:<optional text> achievement:<optional text>
+```
+
+`user2` is optional; when omitted, the first member is used for both person slots. `field` and `achievement` use template-appropriate defaults when omitted. Re-register commands after changing this definition.
+
 ## `/paper` troubleshooting
 
 ### The image says `User xxxx`
