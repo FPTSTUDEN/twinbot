@@ -114,6 +114,22 @@ function fillTemplate(template: string, values: Record<string, string>): string 
   });
 }
 
+function resolvedUser(
+  interaction: DiscordInteraction,
+  userId: string
+): ResolvedUser {
+  const user = interaction.resolved?.users?.[userId];
+  if (user) return { ...user, id: user.id ?? userId };
+
+  // Some forwarding layers preserve resolved members but omit the separate
+  // users map. Member records still identify the selected user, so retain the
+  // ID and use a safe fallback display name/avatar.
+  const member = interaction.resolved?.members?.[userId];
+  if (member) return { ...member, id: member.id ?? userId };
+
+  return { id: userId, username: `User ${userId.slice(-4)}` };
+}
+
 async function loadTemplate(
   env: Env,
   templateName: TemplateName
@@ -206,16 +222,20 @@ export async function handlePaper(
     return;
   }
 
-  const users = interaction.resolved?.users;
-  const first = users?.[firstId];
-  const second = users?.[secondId];
-  if (!first || !second) {
-    await sendErrorFollowup(
-      interaction,
-      "⚠️ Discord did not provide both selected users."
-    );
-    return;
-  }
+  const first = resolvedUser(interaction, firstId);
+  const second = resolvedUser(interaction, secondId);
+
+  console.log("paper users resolved", {
+    interactionId: interaction.id ?? "unknown-interaction",
+    firstId,
+    secondId,
+    resolvedUserIds: Object.keys(interaction.resolved?.users ?? {}),
+    resolvedMemberIds: Object.keys(interaction.resolved?.members ?? {}),
+    usedFallbackFirst: !interaction.resolved?.users?.[firstId] &&
+      !interaction.resolved?.members?.[firstId],
+    usedFallbackSecond: !interaction.resolved?.users?.[secondId] &&
+      !interaction.resolved?.members?.[secondId],
+  });
 
   try {
     const template = await loadTemplate(env, templateValue);

@@ -27,6 +27,7 @@ export interface DiscordInteraction {
   };
   resolved?: {
     users?: Record<string, DiscordResolvedUser>;
+    members?: Record<string, DiscordResolvedUser>;
   };
   type?: number;
 }
