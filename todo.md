@@ -6,6 +6,7 @@
 - [ ] ~~live reload~~
 - [x] Agent instructions (+pnpm)
 - [ ] Apply filters
+- [ ] IAM
 - [ ] RATE LIMIT, (Content Safety), log offenders, blacklist
 - [ ] GH actions -> voice container
 
